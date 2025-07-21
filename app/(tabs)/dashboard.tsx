@@ -64,6 +64,8 @@ export default function Dashboard() {
   const [groupName, setGroupName] = useState('');
   const [groupCode, setGroupCode] = useState('');
   const [selectedGroup, setSelectedGroup] = useState<Grupo | null>(null);
+  const [showQuickNavigation, setShowQuickNavigation] = useState(false);
+  const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
 
   // Estados para crear gasto
   const [expenseDescription, setExpenseDescription] = useState('');
@@ -250,18 +252,22 @@ export default function Dashboard() {
       showsVerticalScrollIndicator={false}
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
     >
-      {/* Header de bienvenida */}
+      {/* Header de bienvenida con flecha de navegación */}
       <Animated.View style={[ComponentStyles.card, animatedCardStyle]}>
         <LinearGradient
           colors={[KompaColors.primary, KompaColors.secondary]}
           style={[styles.gradientCard]}
         >
-          <Text style={[styles.h2, { color: 'white', marginBottom: 4 }]}>
-            ¡Hola {user?.nombre}! 👋
-          </Text>
-          <Text style={[styles.body, { color: 'rgba(255,255,255,0.8)' }]}>
-            Gestiona tus gastos compartidos fácilmente
-          </Text>
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+            <View style={{ flex: 1 }}>
+              <Text style={[styles.h2, { color: 'white', marginBottom: 4 }]}>
+                ¡Hola {user?.nombre}! 👋
+              </Text>
+              <Text style={[styles.body, { color: 'rgba(255,255,255,0.8)' }]}>
+                Gestiona tus gastos compartidos fácilmente
+              </Text>
+            </View>
+          </View>
         </LinearGradient>
       </Animated.View>
 
@@ -495,63 +501,84 @@ export default function Dashboard() {
           </View>
         ) : (
           Array.isArray(groupedExpenses) && groupedExpenses.length > 0 ? (
-            groupedExpenses.map((grupoGastos) => (
-              <View key={grupoGastos.grupo.id} style={{ marginBottom: 24 }}>
-                {/* Header del grupo */}
-                <View style={[ComponentStyles.card, { marginBottom: 12, backgroundColor: KompaColors.primary }]}>
-                  <View style={styles.groupHeader}>
-                    <View style={{ flex: 1 }}>
-                      <Text style={[styles.bodyBold, { color: 'white' }]}>{grupoGastos.grupo.nombre}</Text>
-                      <Text style={[styles.caption, { color: 'rgba(255,255,255,0.8)' }]}>
-                        {grupoGastos.totalGastos} gasto{grupoGastos.totalGastos !== 1 ? 's' : ''}
-                      </Text>
-                    </View>
-                    <View>
-                      <Text style={[styles.h3, { color: 'white' }]}>
-                        ${grupoGastos.montoTotal.toFixed(2)}
-                      </Text>
-                    </View>
-                  </View>
-                </View>
-                
-                {/* Gastos del grupo */}
-                {grupoGastos.gastos.map((expense) => (
-                  <Animated.View
-                    key={expense.id}
-                    style={[ComponentStyles.card, animatedCardStyle, { marginBottom: 8, marginVertical: 0, marginLeft: 16 }]}
+            groupedExpenses.map((grupoGastos) => {
+              const isExpanded = expandedGroups.has(grupoGastos.grupo.id.toString());
+              
+              return (
+                <View key={grupoGastos.grupo.id} style={{ marginBottom: 24 }}>
+                  {/* Header del grupo - clickeable para expandir/colapsar */}
+                  <TouchableOpacity 
+                    style={[ComponentStyles.card, { marginBottom: 12, backgroundColor: KompaColors.primary }]}
+                    onPress={() => {
+                      const newExpandedGroups = new Set(expandedGroups);
+                      const groupId = grupoGastos.grupo.id.toString();
+                      if (newExpandedGroups.has(groupId)) {
+                        newExpandedGroups.delete(groupId);
+                      } else {
+                        newExpandedGroups.add(groupId);
+                      }
+                      setExpandedGroups(newExpandedGroups);
+                    }}
                   >
-                    <View style={styles.expenseHeader}>
+                    <View style={styles.groupHeader}>
                       <View style={{ flex: 1 }}>
-                        <Text style={styles.bodyBold}>{expense.descripcion}</Text>
-                        <Text style={styles.caption}>
-                          {new Date(expense.fecha_creacion).toLocaleDateString()}
+                        <Text style={[styles.bodyBold, { color: 'white' }]}>{grupoGastos.grupo.nombre}</Text>
+                        <Text style={[styles.caption, { color: 'rgba(255,255,255,0.8)' }]}>
+                          {grupoGastos.totalGastos} gasto{grupoGastos.totalGastos !== 1 ? 's' : ''}
                         </Text>
-                        <Text style={[styles.caption, { color: KompaColors.primary }]}>
-                          División: {expense.tipo_division || 'equitativa'}
-                        </Text>
-                        {expense.pagador && (
-                          <Text style={[styles.caption, { color: KompaColors.textSecondary }]}>
-                            Pagado por: {expense.pagador.nombre}
-                          </Text>
-                        )}
-                        {expense.pivot && (
-                          <Text style={[styles.caption, { 
-                            color: expense.pivot.pagado ? KompaColors.success : KompaColors.warning 
-                          }]}>
-                            Tu parte: ${expense.pivot.monto_proporcional.toFixed(2)} - {expense.pivot.pagado ? 'Pagado' : 'Pendiente'}
-                          </Text>
-                        )}
                       </View>
-                      <View>
-                        <Text style={styles.expenseAmount}>
-                          ${parseFloat(expense.monto.toString()).toFixed(2)}
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+                        <Text style={[styles.h3, { color: 'white' }]}>
+                          ${grupoGastos.montoTotal.toFixed(2)}
                         </Text>
+                        <Ionicons 
+                          name={isExpanded ? "chevron-up" : "chevron-down"} 
+                          size={24} 
+                          color="white" 
+                        />
                       </View>
                     </View>
-                  </Animated.View>
-                ))}
-              </View>
-            ))
+                  </TouchableOpacity>
+                  
+                  {/* Gastos del grupo - solo se muestran si está expandido */}
+                  {isExpanded && grupoGastos.gastos.map((expense) => (
+                    <Animated.View
+                      key={expense.id}
+                      style={[ComponentStyles.card, animatedCardStyle, { marginBottom: 8, marginVertical: 0, marginLeft: 16 }]}
+                    >
+                      <View style={styles.expenseHeader}>
+                        <View style={{ flex: 1 }}>
+                          <Text style={styles.bodyBold}>{expense.descripcion}</Text>
+                          <Text style={styles.caption}>
+                            {new Date(expense.fecha_creacion).toLocaleDateString()}
+                          </Text>
+                          <Text style={[styles.caption, { color: KompaColors.primary }]}>
+                            División: {expense.tipo_division || 'equitativa'}
+                          </Text>
+                          {expense.pagador && (
+                            <Text style={[styles.caption, { color: KompaColors.textSecondary }]}>
+                              Pagado por: {expense.pagador.nombre}
+                            </Text>
+                          )}
+                          {expense.pivot && (
+                            <Text style={[styles.caption, { 
+                              color: expense.pivot.pagado ? KompaColors.success : KompaColors.warning 
+                            }]}>
+                              Tu parte: ${expense.pivot.monto_proporcional.toFixed(2)} - {expense.pivot.pagado ? 'Pagado' : 'Pendiente'}
+                            </Text>
+                          )}
+                        </View>
+                        <View>
+                          <Text style={styles.expenseAmount}>
+                            ${parseFloat(expense.monto.toString()).toFixed(2)}
+                          </Text>
+                        </View>
+                      </View>
+                    </Animated.View>
+                  ))}
+                </View>
+              );
+            })
           ) : (
             Array.isArray(myExpenses) ? myExpenses.map((expense) => (
               <Animated.View
@@ -688,7 +715,7 @@ export default function Dashboard() {
             style={styles.tabIcon}
           />
           <Text style={[styles.tabText, { color: activeTab === 'overview' ? KompaColors.primary : KompaColors.textSecondary }]}>
-            Inicio
+            Dashboard
           </Text>
         </TouchableOpacity>
 
@@ -1197,5 +1224,70 @@ const styles = StyleSheet.create({
   },
   logoutText: {
     color: 'white',
+  },
+  quickNavigationContainer: {
+    marginHorizontal: 16,
+    marginBottom: 20,
+    backgroundColor: 'white',
+    borderRadius: 12,
+    padding: 16,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+      },
+      android: {
+        elevation: 3,
+      },
+    }),
+  },
+  quickNavigationGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 12,
+    justifyContent: 'space-between',
+  },
+  quickNavButton: {
+    flex: 1,
+    minWidth: '30%',
+    backgroundColor: '#f8f9fa',
+    borderRadius: 12,
+    padding: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 2,
+    borderColor: 'transparent',
+  },
+  activeQuickNavButton: {
+    backgroundColor: KompaColors.primary,
+    borderColor: KompaColors.primaryDark,
+  },
+  quickNavText: {
+    fontSize: 12,
+    fontWeight: '600',
+    marginTop: 4,
+    textAlign: 'center',
+  },
+  globalQuickNavigationContainer: {
+    position: 'absolute',
+    bottom: 70, // Aparece justo arriba de la barra de navegación
+    left: 16,
+    right: 16,
+    backgroundColor: 'white',
+    borderRadius: 12,
+    padding: 16,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.15,
+        shadowRadius: 8,
+      },
+      android: {
+        elevation: 8,
+      },
+    }),
   },
 });
