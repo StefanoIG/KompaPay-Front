@@ -45,6 +45,7 @@ export default function Dashboard() {
   } = useGroups();
   const { 
     myExpenses,
+    groupedExpenses,
     debts,
     loading: expensesLoading,
     error: expensesError,
@@ -141,6 +142,35 @@ export default function Dashboard() {
     }
   };
 
+  // Función para validar y formatear el monto
+  const handleAmountChange = (text: string) => {
+    // Remover cualquier caracter que no sea número o punto decimal
+    let cleanedText = text.replace(/[^0-9.]/g, '');
+    
+    // Asegurar que solo haya un punto decimal
+    const parts = cleanedText.split('.');
+    if (parts.length > 2) {
+      cleanedText = parts[0] + '.' + parts.slice(1).join('');
+    }
+    
+    // Limitar a 2 decimales
+    if (parts[1] && parts[1].length > 2) {
+      cleanedText = parts[0] + '.' + parts[1].substring(0, 2);
+    }
+    
+    // No permitir que empiece con punto
+    if (cleanedText.startsWith('.')) {
+      cleanedText = '0' + cleanedText;
+    }
+    
+    // No permitir múltiples ceros al inicio
+    if (cleanedText.match(/^0+\d/)) {
+      cleanedText = cleanedText.replace(/^0+/, '');
+    }
+    
+    setExpenseAmount(cleanedText);
+  };
+
   const handleCreateExpense = async () => {
     if (!selectedGroup || !expenseDescription.trim() || !expenseAmount.trim()) {
       Alert.alert('Error', 'Por favor completa todos los campos');
@@ -157,11 +187,17 @@ export default function Dashboard() {
       // Crear el objeto con el formato que espera el backend
       const now = new Date().toISOString().slice(0, 19).replace('T', ' '); // Formato: Y-m-d H:i:s
       
+      // Generar un ID público único para el gasto
+      const generatePublicId = () => {
+        return Math.random().toString(36).substr(2, 8).toUpperCase();
+      };
+      
       await createExpense({
         grupo_id: selectedGroup.id,
         descripcion: expenseDescription.trim(),
         monto_total: amount, // Cambié de 'monto' a 'monto_total'
         pagado_por: user?.id || '', // Usuario que pagó
+        id_publico: generatePublicId(), // Generar ID público único
         participantes: [{ 
           id_usuario: user?.id || '', // Cambié de 'user_id' a 'id_usuario'
           monto_proporcional: amount 
@@ -233,20 +269,20 @@ export default function Dashboard() {
       <View style={styles.statsContainer}>
         <Animated.View style={[styles.statCard, animatedCardStyle]}>
           <Ionicons name="people" size={24} color={KompaColors.primary} />
-          <Text style={styles.h3}>{groups.length}</Text>
+          <Text style={styles.h3}>{groups?.length || 0}</Text>
           <Text style={styles.caption}>Grupos</Text>
         </Animated.View>
         
         <Animated.View style={[styles.statCard, animatedCardStyle]}>
           <Ionicons name="receipt" size={24} color={KompaColors.secondary} />
-          <Text style={styles.h3}>{myExpenses.length}</Text>
+          <Text style={styles.h3}>{myExpenses?.length || 0}</Text>
           <Text style={styles.caption}>Gastos</Text>
         </Animated.View>
         
         <Animated.View style={[styles.statCard, animatedCardStyle]}>
           <Ionicons name="cash" size={24} color={KompaColors.warning} />
           <Text style={styles.h3}>
-            ${debts.reduce((sum: number, debt: any) => sum + debt.monto_total, 0).toFixed(2)}
+            ${(Array.isArray(debts) ? debts.reduce((sum: number, debt: any) => sum + debt.monto_total, 0) : 0).toFixed(2)}
           </Text>
           <Text style={styles.caption}>Deudas</Text>
         </Animated.View>
@@ -276,7 +312,7 @@ export default function Dashboard() {
           <TouchableOpacity 
             style={styles.quickActionCard}
             onPress={() => {
-              if (groups.length > 0) {
+              if (groups && groups.length > 0) {
                 setSelectedGroup(groups[0]);
                 setShowCreateExpense(true);
               } else {
@@ -299,7 +335,7 @@ export default function Dashboard() {
       </View>
 
       {/* Grupos recientes */}
-      {groups.length > 0 && (
+      {groups && groups.length > 0 && (
         <View style={{ marginHorizontal: 16, marginBottom: 20 }}>
           <Text style={[styles.h3, { marginBottom: 12 }]}>Mis Grupos</Text>
           {groups.slice(0, 3).map((group, index) => (
@@ -347,7 +383,7 @@ export default function Dashboard() {
           <View style={styles.emptyState}>
             <Text style={styles.body}>Cargando grupos...</Text>
           </View>
-        ) : groups.length === 0 ? (
+        ) : (!groups || groups.length === 0) ? (
           <View style={styles.emptyState}>
             <Ionicons name="people-outline" size={64} color={KompaColors.textSecondary} />
             <Text style={[styles.h3, { marginTop: 16, marginBottom: 8 }]}>
@@ -364,7 +400,7 @@ export default function Dashboard() {
             </TouchableOpacity>
           </View>
         ) : (
-          groups.map((group) => (
+          Array.isArray(groups) ? groups.map((group) => (
             <Animated.View
               key={group.id}
               style={[ComponentStyles.card, animatedCardStyle, { marginBottom: 12, marginVertical: 0 }]}
@@ -401,7 +437,7 @@ export default function Dashboard() {
                 </View>
               </View>
             </Animated.View>
-          ))
+          )) : null
         )}
       </View>
     </ScrollView>
@@ -418,7 +454,7 @@ export default function Dashboard() {
           <TouchableOpacity
             style={ComponentStyles.button}
             onPress={() => {
-              if (groups.length > 0) {
+              if (groups && groups.length > 0) {
                 setSelectedGroup(groups[0]);
                 setShowCreateExpense(true);
               } else {
@@ -434,7 +470,7 @@ export default function Dashboard() {
           <View style={styles.emptyState}>
             <Text style={styles.body}>Cargando gastos...</Text>
           </View>
-        ) : myExpenses.length === 0 ? (
+        ) : (!myExpenses || myExpenses.length === 0) && (!groupedExpenses || groupedExpenses.length === 0) ? (
           <View style={styles.emptyState}>
             <Ionicons name="receipt-outline" size={64} color={KompaColors.textSecondary} />
             <Text style={[styles.h3, { marginTop: 16, marginBottom: 8 }]}>
@@ -446,7 +482,7 @@ export default function Dashboard() {
             <TouchableOpacity
               style={ComponentStyles.button}
               onPress={() => {
-                if (groups.length > 0) {
+                if (groups && groups.length > 0) {
                   setSelectedGroup(groups[0]);
                   setShowCreateExpense(true);
                 } else {
@@ -458,33 +494,93 @@ export default function Dashboard() {
             </TouchableOpacity>
           </View>
         ) : (
-          myExpenses.map((expense) => (
-            <Animated.View
-              key={expense.id}
-              style={[ComponentStyles.card, animatedCardStyle, { marginBottom: 12, marginVertical: 0 }]}
-            >
-              <View style={styles.expenseHeader}>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.bodyBold}>{expense.descripcion}</Text>
-                  <Text style={styles.caption}>
-                    {new Date(expense.fecha_creacion).toLocaleDateString()}
-                  </Text>
-                  <Text style={[styles.caption, { color: KompaColors.primary }]}>
-                    División: {expense.tipo_division}
-                  </Text>
+          Array.isArray(groupedExpenses) && groupedExpenses.length > 0 ? (
+            groupedExpenses.map((grupoGastos) => (
+              <View key={grupoGastos.grupo.id} style={{ marginBottom: 24 }}>
+                {/* Header del grupo */}
+                <View style={[ComponentStyles.card, { marginBottom: 12, backgroundColor: KompaColors.primary }]}>
+                  <View style={styles.groupHeader}>
+                    <View style={{ flex: 1 }}>
+                      <Text style={[styles.bodyBold, { color: 'white' }]}>{grupoGastos.grupo.nombre}</Text>
+                      <Text style={[styles.caption, { color: 'rgba(255,255,255,0.8)' }]}>
+                        {grupoGastos.totalGastos} gasto{grupoGastos.totalGastos !== 1 ? 's' : ''}
+                      </Text>
+                    </View>
+                    <View>
+                      <Text style={[styles.h3, { color: 'white' }]}>
+                        ${grupoGastos.montoTotal.toFixed(2)}
+                      </Text>
+                    </View>
+                  </View>
                 </View>
-                <View>
-                  <Text style={styles.expenseAmount}>
-                    ${expense.monto_total.toFixed(2)}
-                  </Text>
-                </View>
+                
+                {/* Gastos del grupo */}
+                {grupoGastos.gastos.map((expense) => (
+                  <Animated.View
+                    key={expense.id}
+                    style={[ComponentStyles.card, animatedCardStyle, { marginBottom: 8, marginVertical: 0, marginLeft: 16 }]}
+                  >
+                    <View style={styles.expenseHeader}>
+                      <View style={{ flex: 1 }}>
+                        <Text style={styles.bodyBold}>{expense.descripcion}</Text>
+                        <Text style={styles.caption}>
+                          {new Date(expense.fecha_creacion).toLocaleDateString()}
+                        </Text>
+                        <Text style={[styles.caption, { color: KompaColors.primary }]}>
+                          División: {expense.tipo_division || 'equitativa'}
+                        </Text>
+                        {expense.pagador && (
+                          <Text style={[styles.caption, { color: KompaColors.textSecondary }]}>
+                            Pagado por: {expense.pagador.nombre}
+                          </Text>
+                        )}
+                        {expense.pivot && (
+                          <Text style={[styles.caption, { 
+                            color: expense.pivot.pagado ? KompaColors.success : KompaColors.warning 
+                          }]}>
+                            Tu parte: ${expense.pivot.monto_proporcional.toFixed(2)} - {expense.pivot.pagado ? 'Pagado' : 'Pendiente'}
+                          </Text>
+                        )}
+                      </View>
+                      <View>
+                        <Text style={styles.expenseAmount}>
+                          ${parseFloat(expense.monto.toString()).toFixed(2)}
+                        </Text>
+                      </View>
+                    </View>
+                  </Animated.View>
+                ))}
               </View>
-            </Animated.View>
-          ))
+            ))
+          ) : (
+            Array.isArray(myExpenses) ? myExpenses.map((expense) => (
+              <Animated.View
+                key={expense.id}
+                style={[ComponentStyles.card, animatedCardStyle, { marginBottom: 12, marginVertical: 0 }]}
+              >
+                <View style={styles.expenseHeader}>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.bodyBold}>{expense.descripcion}</Text>
+                    <Text style={styles.caption}>
+                      {new Date(expense.fecha_creacion).toLocaleDateString()}
+                    </Text>
+                    <Text style={[styles.caption, { color: KompaColors.primary }]}>
+                      División: {expense.tipo_division || 'equitativa'}
+                    </Text>
+                  </View>
+                  <View>
+                    <Text style={styles.expenseAmount}>
+                      ${parseFloat(expense.monto.toString()).toFixed(2)}
+                    </Text>
+                  </View>
+                </View>
+              </Animated.View>
+            )) : null
+          )
         )}
 
         {/* Resumen de deudas */}
-        {debts.length > 0 && (
+        {Array.isArray(debts) && debts.length > 0 && (
           <View style={{ marginTop: 20 }}>
             <Text style={[styles.h3, { marginBottom: 12 }]}>Resumen de Deudas</Text>
             {debts.map((debt: any, index: number) => (
@@ -757,8 +853,8 @@ export default function Dashboard() {
                 style={{ borderWidth: 1, borderColor: KompaColors.border, borderRadius: 8, padding: 12, marginBottom: 16 }}
                 placeholder="Monto ($)"
                 value={expenseAmount}
-                onChangeText={setExpenseAmount}
-                keyboardType="numeric"
+                onChangeText={handleAmountChange}
+                keyboardType="decimal-pad"
               />
               
               <Text style={[styles.bodyBold, { marginTop: 16, marginBottom: 8 }]}>
@@ -809,10 +905,10 @@ export default function Dashboard() {
                 <TouchableOpacity
                   style={[ComponentStyles.button, { 
                     flex: 1,
-                    opacity: expenseDescription.trim() && expenseAmount.trim() ? 1 : 0.5 
+                    opacity: expenseDescription.trim() && expenseAmount.trim() && parseFloat(expenseAmount) > 0 ? 1 : 0.5 
                   }]}
                   onPress={handleCreateExpense}
-                  disabled={!expenseDescription.trim() || !expenseAmount.trim()}
+                  disabled={!expenseDescription.trim() || !expenseAmount.trim() || parseFloat(expenseAmount) <= 0 || isNaN(parseFloat(expenseAmount))}
                 >
                   <Text style={{ color: 'white', fontWeight: '600' }}>Crear</Text>
                 </TouchableOpacity>
