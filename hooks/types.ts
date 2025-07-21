@@ -255,6 +255,7 @@ export interface ExpensesState extends LoadingState {
   groupedExpenses: GastosPorGrupo[]; // Nueva propiedad para gastos agrupados
   currentExpense: Gasto | null;
   debts: DeudaResumen[];
+  debtsSummary: DeudaResponse | null; // Nueva propiedad para el resumen completo de deudas
   hasMore: boolean;
   page: number;
 }
@@ -278,6 +279,29 @@ export interface DeudaResumen {
   total_deuda: number;
   created_at: string;
   updated_at: string;
+}
+
+export interface DeudaItem {
+  gasto_id: string;
+  gasto_id_publico: string;
+  descripcion: string;
+  monto_total: string;
+  monto_adeudado: number;
+  pagado_por: string;
+  grupo: string;
+  fecha_creacion: string;
+}
+
+export interface ResumenDeudas {
+  total_deudas: number;
+  total_acreencias: number;
+  balance: number;
+}
+
+export interface DeudaResponse {
+  deudas: DeudaItem[];
+  acreencias: DeudaItem[];
+  resumen: ResumenDeudas;
 }
 
 export interface PayDebtRequest {

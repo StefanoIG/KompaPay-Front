@@ -97,6 +97,12 @@ export const ENDPOINTS = {
     USER_LOGS: '/user/audit',
     GROUP_LOGS: '/grupos/{grupoId}/audit',
   },
+  
+  // Reportes
+  REPORTS: {
+    BALANCE_PDF: '/reportes/balance/pdf',
+    BALANCE_SUMMARY: '/reportes/balance/resumen',
+  },
 };
 
 // Tipos de errores de la API

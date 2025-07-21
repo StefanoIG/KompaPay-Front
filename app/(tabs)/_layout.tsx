@@ -53,6 +53,17 @@ export default function TabLayout() {
           <TouchableOpacity 
             style={styles.quickNavButton}
             onPress={() => {
+              // Navegar a Reportes
+              setShowQuickNavigation(false);
+            }}
+          >
+            <Ionicons name="analytics" size={20} color={KompaColors.info} />
+            <Text style={styles.quickNavText}>Reportes</Text>
+          </TouchableOpacity>
+          
+          <TouchableOpacity 
+            style={styles.quickNavButton}
+            onPress={() => {
               // Navegar a Perfil
               setShowQuickNavigation(false);
             }}
@@ -111,6 +122,15 @@ export default function TabLayout() {
                   <Text style={{ fontSize: 16, color }}>⏷</Text>
                 </TouchableOpacity>
               </View>
+            ),
+          }}
+        />
+        <Tabs.Screen
+          name="reportes"
+          options={{
+            title: 'Reportes',
+            tabBarIcon: ({ color, focused }) => (
+              <IconSymbol size={28} name={focused ? 'chart.bar.fill' : 'chart.bar'} color={color} />
             ),
           }}
         />

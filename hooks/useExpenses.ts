@@ -10,6 +10,7 @@ import {
   GastosPorGrupo,
   APIResponse,
   DeudaResumen,
+  DeudaResponse,
   GroupExpensesParams,
 } from './types';
 
@@ -23,6 +24,7 @@ export const useExpenses = () => {
     groupedExpenses: [],
     currentExpense: null,
     debts: [],
+    debtsSummary: null,
     loading: false,
     error: null,
     success: false,
@@ -302,12 +304,13 @@ export const useExpenses = () => {
     try {
       setExpensesState(prev => ({ ...prev, loading: true, error: null }));
 
-      const response: APIResponse<DeudaResumen[]> = await get(ENDPOINTS.EXPENSES.MY_DEBTS);
+      const response: APIResponse<DeudaResponse> = await get(ENDPOINTS.EXPENSES.MY_DEBTS);
 
       if (response.success && response.data) {
         setExpensesState(prev => ({
           ...prev,
-          debts: response.data || [],
+          debtsSummary: response.data || null,
+          debts: [], // Mantener compatibilidad por ahora
           loading: false,
           success: true,
         }));

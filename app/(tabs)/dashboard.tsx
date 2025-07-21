@@ -28,6 +28,7 @@ import { useGroups } from '../../hooks/useGroups';
 import { useExpenses } from '../../hooks/useExpenses';
 import { GlobalStyles, ComponentStyles, KompaColors, FontSizes, Spacing, BorderRadius, Shadows } from '../../constants/Styles';
 import { Grupo, Gasto } from '../../hooks/types';
+import { formatCurrencyOptional } from '../../utils/formatters';
 
 export default function Dashboard() {
   const router = useRouter();
@@ -47,6 +48,7 @@ export default function Dashboard() {
     myExpenses,
     groupedExpenses,
     debts,
+    debtsSummary,
     loading: expensesLoading,
     error: expensesError,
     success: expensesSuccess,
@@ -288,7 +290,7 @@ export default function Dashboard() {
         <Animated.View style={[styles.statCard, animatedCardStyle]}>
           <Ionicons name="cash" size={24} color={KompaColors.warning} />
           <Text style={styles.h3}>
-            ${(Array.isArray(debts) ? debts.reduce((sum: number, debt: any) => sum + debt.monto_total, 0) : 0).toFixed(2)}
+            {formatCurrencyOptional(debtsSummary?.resumen?.total_deudas || 0)}
           </Text>
           <Text style={styles.caption}>Deudas</Text>
         </Animated.View>
@@ -332,7 +334,7 @@ export default function Dashboard() {
           
           <TouchableOpacity 
             style={styles.quickActionCard}
-            onPress={() => setActiveTab('expenses')}
+            onPress={() => router.push('/(tabs)/reportes')}
           >
             <Ionicons name="analytics" size={32} color={KompaColors.info} />
             <Text style={styles.bodyBold}>Ver Reportes</Text>
@@ -607,19 +609,28 @@ export default function Dashboard() {
         )}
 
         {/* Resumen de deudas */}
-        {Array.isArray(debts) && debts.length > 0 && (
+        {debtsSummary?.deudas && debtsSummary.deudas.length > 0 && (
           <View style={{ marginTop: 20 }}>
             <Text style={[styles.h3, { marginBottom: 12 }]}>Resumen de Deudas</Text>
-            {debts.map((debt: any, index: number) => (
-              <View key={index} style={[ComponentStyles.card, { marginBottom: 8, marginVertical: 0 }]}>
+            {debtsSummary.deudas.slice(0, 5).map((debt, index: number) => (
+              <View key={debt.gasto_id} style={[ComponentStyles.card, { marginBottom: 8, marginVertical: 0 }]}>
                 <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <Text style={styles.bodyBold}>{debt.acreedor_nombre}</Text>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.bodyBold}>{debt.descripcion}</Text>
+                    <Text style={styles.caption}>Pagado por: {debt.pagado_por}</Text>
+                    <Text style={styles.caption}>{debt.grupo}</Text>
+                  </View>
                   <Text style={[styles.h3, { color: KompaColors.error }]}>
-                    -${debt.monto_total.toFixed(2)}
+                    -{formatCurrencyOptional(debt.monto_adeudado)}
                   </Text>
                 </View>
               </View>
             ))}
+            {debtsSummary.deudas.length > 5 && (
+              <Text style={[styles.caption, { textAlign: 'center', marginTop: 8 }]}>
+                Y {debtsSummary.deudas.length - 5} deuda{debtsSummary.deudas.length - 5 > 1 ? 's' : ''} más...
+              </Text>
+            )}
           </View>
         )}
       </View>
