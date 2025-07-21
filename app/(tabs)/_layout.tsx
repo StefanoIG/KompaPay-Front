@@ -111,7 +111,7 @@ export default function TabLayout() {
         <Tabs.Screen
           name="index"
           options={{
-            title: 'Dashboard',
+            title: 'Inicio',
             tabBarIcon: ({ color, focused }) => (
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
                 <IconSymbol size={28} name={focused ? 'house.fill' : 'house'} color={color} />
