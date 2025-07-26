@@ -8,46 +8,30 @@ export * from './types';
 // Hooks principales
 export { useAPI } from './useAPI';
 export { useAuth } from './useAuth';
-export { useGroups, useGroup } from './useGroups';
-export { useExpenses, useExpense, useGroupDebts } from './useExpenses';
-export { useSync, useConflicts, useOffline } from './useSync';
+export { useExpense, useExpenses, useGroupDebts } from './useExpenses';
+export { useGroup, useGroups } from './useGroups';
+export { useConflicts, useOffline, useSync } from './useSync';
 
-// Hooks de utilidades
-export { 
-  useUtils, 
-  useCache, 
-  useAudit, 
-  useNetworkStatus 
+// Hooks de UI y validación
+export { useDashboardUI, useExploreUI } from './useUI';
+export { useUtilities } from './useUtilities';
+export { useAuthValidation, useFormValidation, usePasswordStrength } from './useValidation';
+
+// Hooks de utilidades existentes
+export {
+    useAudit, useCache, useNetworkStatus, useUtils
 } from './useUtils';
 
 // Re-exportar tipos importantes para fácil acceso
 export type {
-  User,
-  Grupo,
-  Gasto,
-  SyncConflicto,
-  AuthState,
-  GroupsState,
-  ExpensesState,
-  SyncState,
-  APIResponse,
-  CreateUserRequest,
-  LoginRequest,
-  CreateGrupoRequest,
-  CreateGastoRequest,
-  DeudaResumen,
-  PayDebtRequest,
+    APIResponse, AuthState, CreateGastoRequest, CreateGrupoRequest, CreateUserRequest, DeudaResumen, ExpensesState, Gasto, GroupsState, Grupo, LoginRequest, PayDebtRequest, SyncConflicto, SyncState, User
 } from './types';
 
 // Re-exportar configuraciones importantes
 export {
-  BASE_URL,
-  ENDPOINTS,
-  STORAGE_KEYS,
-  API_CONFIG,
-  APP_CONFIG,
-  EXPENSE_CATEGORIES,
-  APIErrorType,
+    APIErrorType, API_CONFIG,
+    APP_CONFIG, BASE_URL,
+    ENDPOINTS, EXPENSE_CATEGORIES, STORAGE_KEYS
 } from './config';
 
 // Constantes útiles para la aplicación

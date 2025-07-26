@@ -1,14 +1,12 @@
-import { useState, useCallback, useEffect } from 'react';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useAPI } from './useAPI';
-import { ENDPOINTS, STORAGE_KEYS, APP_CONFIG } from './config';
+import { useCallback, useEffect, useState } from 'react';
+import { APP_CONFIG, ENDPOINTS } from './config';
+import { storage } from './storage';
 import {
-  AuditLog,
-  APIResponse,
-  User,
-  Grupo,
-  Gasto,
+    APIResponse,
+    AuditLog,
+    Gasto
 } from './types';
+import { useAPI } from './useAPI';
 
 // Hook para utilidades generales
 export const useUtils = () => {
@@ -180,7 +178,7 @@ export const useCache = () => {
     setCacheState(prev => new Map(prev.set(key, cacheItem)));
     
     try {
-      await AsyncStorage.setItem(`cache_${key}`, JSON.stringify(cacheItem));
+      await storage.setItem(`cache_${key}`, JSON.stringify(cacheItem));
     } catch (error) {
       console.error('Error guardando en caché:', error);
     }
@@ -197,9 +195,9 @@ export const useCache = () => {
       }
     }
 
-    // Verificar en AsyncStorage
+    // Verificar en storage
     try {
-      const cachedItem = await AsyncStorage.getItem(`cache_${key}`);
+      const cachedItem = await storage.getItem(`cache_${key}`);
       if (cachedItem) {
         const parsed = JSON.parse(cachedItem);
         const isExpired = Date.now() - parsed.timestamp > APP_CONFIG.CACHE_DURATION;
@@ -210,7 +208,7 @@ export const useCache = () => {
           return parsed.data;
         } else {
           // Limpiar caché expirado
-          await AsyncStorage.removeItem(`cache_${key}`);
+          await storage.removeItem(`cache_${key}`);
         }
       }
     } catch (error) {
@@ -230,7 +228,7 @@ export const useCache = () => {
       });
       
       try {
-        await AsyncStorage.removeItem(`cache_${key}`);
+        await storage.removeItem(`cache_${key}`);
       } catch (error) {
         console.error('Error limpiando caché:', error);
       }
@@ -239,9 +237,9 @@ export const useCache = () => {
       setCacheState(new Map());
       
       try {
-        const keys = await AsyncStorage.getAllKeys();
-        const cacheKeys = keys.filter(k => k.startsWith('cache_'));
-        await AsyncStorage.multiRemove(cacheKeys);
+        const keys = await storage.getAllKeys();
+        const cacheKeys = keys.filter((k: string) => k.startsWith('cache_'));
+        await storage.multiRemove(cacheKeys);
       } catch (error) {
         console.error('Error limpiando todo el caché:', error);
       }

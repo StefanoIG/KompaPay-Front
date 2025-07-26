@@ -1,12 +1,13 @@
-import React, { useEffect } from 'react';
+import { WebApp } from '@/components/web/WebApp';
 import { useFonts } from 'expo-font';
 import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
+import React, { useEffect } from 'react';
 import { Platform } from 'react-native';
-import Toast from 'react-native-toast-message';
-import 'react-native-reanimated';
 import 'react-native-gesture-handler';
+import 'react-native-reanimated';
+import Toast from 'react-native-toast-message';
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
@@ -26,6 +27,18 @@ export default function RootLayout() {
     return null;
   }
 
+  // Si es web, usar el layout de web con sidebar
+  if (Platform.OS === 'web') {
+    return (
+      <>
+        <WebApp />
+        <StatusBar style="auto" />
+        <Toast />
+      </>
+    );
+  }
+
+  // Si es móvil, usar el layout normal con tabs
   return (
     <>
       <Stack>

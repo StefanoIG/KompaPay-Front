@@ -1,18 +1,16 @@
+import { KompaColors } from '@/constants/Styles';
+import { LinearGradient } from 'expo-linear-gradient';
 import React from 'react';
 import { View, ViewStyle } from 'react-native';
 import Animated, {
-  useSharedValue,
-  useAnimatedStyle,
-  withSpring,
-  withTiming,
-  withRepeat,
-  withSequence,
-  Easing,
-  interpolate,
-  Extrapolation,
+    Easing,
+    useAnimatedStyle,
+    useSharedValue,
+    withRepeat,
+    withSequence,
+    withSpring,
+    withTiming
 } from 'react-native-reanimated';
-import { LinearGradient } from 'expo-linear-gradient';
-import { KompaColors } from '@/constants/Styles';
 
 interface AnimatedCardProps {
   children: React.ReactNode;

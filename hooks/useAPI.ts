@@ -1,6 +1,6 @@
-import { useState, useCallback } from 'react';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { BASE_URL, API_CONFIG, APIErrorType, STORAGE_KEYS } from './config';
+import { useCallback, useState } from 'react';
+import { API_CONFIG, APIErrorType, BASE_URL, STORAGE_KEYS } from './config';
+import { storage } from './storage';
 import { APIResponse, LoadingState } from './types';
 
 // Clase personalizada para errores de la API
@@ -29,7 +29,7 @@ export const useAPI = () => {
   // Obtener token de autenticación
   const getAuthToken = useCallback(async (): Promise<string | null> => {
     try {
-      return await AsyncStorage.getItem(STORAGE_KEYS.AUTH_TOKEN);
+      return await storage.getItem(STORAGE_KEYS.AUTH_TOKEN);
     } catch (error) {
       console.error('Error getting auth token:', error);
       return null;
@@ -37,15 +37,15 @@ export const useAPI = () => {
   }, []);
 
   // Configurar headers con autenticación
-  const getHeaders = useCallback(async (additionalHeaders?: Record<string, string>) => {
+  const getHeaders = useCallback(async (additionalHeaders?: Record<string, string>): Promise<Record<string, string>> => {
     const token = await getAuthToken();
-    const headers = {
+    const headers: Record<string, string> = {
       ...API_CONFIG.DEFAULT_HEADERS,
       ...additionalHeaders,
     };
 
     if (token) {
-      headers.Authorization = `Bearer ${token}`;
+      headers['Authorization'] = `Bearer ${token}`;
     }
 
     return headers;
@@ -74,11 +74,13 @@ export const useAPI = () => {
       const url = `${BASE_URL}${endpoint}`;
       const headers = await getHeaders(additionalHeaders);
 
+      console.log('API Request:', { method, url, data, headers });
+
       // Verificar autenticación si es requerida
-      if (requireAuth && !headers.Authorization) {
+      if (requireAuth && !headers['Authorization']) {
         throw new APIError(
           'Token de autenticación requerido',
-          APIErrorType.AUTHENTICATION_ERROR,
+          APIErrorType.AUTH_ERROR,
           401
         );
       }
@@ -86,6 +88,7 @@ export const useAPI = () => {
       const requestOptions: RequestInit = {
         method,
         headers,
+        mode: 'cors',
       };
 
       // Agregar body para métodos que lo soportan
@@ -122,12 +125,12 @@ export const useAPI = () => {
         
         switch (response.status) {
           case 401:
-            errorType = APIErrorType.AUTHENTICATION_ERROR;
+            errorType = APIErrorType.AUTH_ERROR;
             // Limpiar token inválido
-            await AsyncStorage.removeItem(STORAGE_KEYS.AUTH_TOKEN);
+            await storage.removeItem(STORAGE_KEYS.AUTH_TOKEN);
             break;
           case 403:
-            errorType = APIErrorType.AUTHORIZATION_ERROR;
+            errorType = APIErrorType.AUTH_ERROR;
             break;
           case 422:
             errorType = APIErrorType.VALIDATION_ERROR;
@@ -153,7 +156,7 @@ export const useAPI = () => {
       setState(prev => ({ ...prev, loading: false, success: true }));
       return responseData;
 
-    } catch (error) {
+    } catch (error: any) {
       let apiError: APIError;
 
       if (error instanceof APIError) {
@@ -163,7 +166,7 @@ export const useAPI = () => {
           'Tiempo de espera agotado',
           APIErrorType.TIMEOUT_ERROR
         );
-      } else if (error.message.includes('Network')) {
+      } else if (error.message && error.message.includes('Network')) {
         apiError = new APIError(
           'Error de conexión',
           APIErrorType.NETWORK_ERROR

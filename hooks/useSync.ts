@@ -1,15 +1,15 @@
-import { useState, useCallback, useEffect } from 'react';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useAPI } from './useAPI';
+import { useCallback, useEffect, useState } from 'react';
 import { ENDPOINTS, STORAGE_KEYS } from './config';
+import { storage } from './storage';
 import {
-  SyncConflicto,
-  SyncState,
-  APIResponse,
-  OfflineAction,
-  SyncData,
-  ResolveSyncConflictRequest,
+    APIResponse,
+    OfflineAction,
+    ResolveSyncConflictRequest,
+    SyncConflicto,
+    SyncData,
+    SyncState,
 } from './types';
+import { useAPI } from './useAPI';
 
 // Hook para gestión de sincronización y conflictos
 export const useSync = () => {
@@ -29,8 +29,8 @@ export const useSync = () => {
   const loadSyncData = useCallback(async () => {
     try {
       const [lastSyncStr, offlineActionsStr] = await Promise.all([
-        AsyncStorage.getItem(STORAGE_KEYS.LAST_SYNC),
-        AsyncStorage.getItem(STORAGE_KEYS.OFFLINE_ACTIONS),
+        storage.getItem(STORAGE_KEYS.LAST_SYNC),
+        storage.getItem(STORAGE_KEYS.OFFLINE_ACTIONS),
       ]);
 
       const lastSync = lastSyncStr || null;
@@ -52,7 +52,7 @@ export const useSync = () => {
   const updateLastSync = useCallback(async (timestamp?: string) => {
     try {
       const syncTime = timestamp || new Date().toISOString();
-      await AsyncStorage.setItem(STORAGE_KEYS.LAST_SYNC, syncTime);
+      await storage.setItem(STORAGE_KEYS.LAST_SYNC, syncTime);
       
       setSyncState(prev => ({
         ...prev,
@@ -76,7 +76,7 @@ export const useSync = () => {
       const updatedActions = [...offlineActions, newAction];
       setOfflineActions(updatedActions);
       
-      await AsyncStorage.setItem(STORAGE_KEYS.OFFLINE_ACTIONS, JSON.stringify(updatedActions));
+      await storage.setItem(STORAGE_KEYS.OFFLINE_ACTIONS, JSON.stringify(updatedActions));
       
       setSyncState(prev => ({
         ...prev,
@@ -93,7 +93,7 @@ export const useSync = () => {
       const updatedActions = offlineActions.filter(action => action.id !== actionId);
       setOfflineActions(updatedActions);
       
-      await AsyncStorage.setItem(STORAGE_KEYS.OFFLINE_ACTIONS, JSON.stringify(updatedActions));
+      await storage.setItem(STORAGE_KEYS.OFFLINE_ACTIONS, JSON.stringify(updatedActions));
       
       setSyncState(prev => ({
         ...prev,
@@ -145,7 +145,7 @@ export const useSync = () => {
 
       if (response.success) {
         // Limpiar acciones offline exitosas
-        await AsyncStorage.removeItem(STORAGE_KEYS.OFFLINE_ACTIONS);
+        await storage.removeItem(STORAGE_KEYS.OFFLINE_ACTIONS);
         setOfflineActions([]);
         
         setSyncState(prev => ({
@@ -301,7 +301,7 @@ export const useSync = () => {
             a.id === action.id ? { ...a, retries: a.retries + 1 } : a
           );
           setOfflineActions(updatedActions);
-          await AsyncStorage.setItem(STORAGE_KEYS.OFFLINE_ACTIONS, JSON.stringify(updatedActions));
+          await storage.setItem(STORAGE_KEYS.OFFLINE_ACTIONS, JSON.stringify(updatedActions));
         }
       } catch (error) {
         console.error('Error en retry de acción offline:', error);
@@ -313,8 +313,8 @@ export const useSync = () => {
   const clearSyncData = useCallback(async () => {
     try {
       await Promise.all([
-        AsyncStorage.removeItem(STORAGE_KEYS.LAST_SYNC),
-        AsyncStorage.removeItem(STORAGE_KEYS.OFFLINE_ACTIONS),
+        storage.removeItem(STORAGE_KEYS.LAST_SYNC),
+        storage.removeItem(STORAGE_KEYS.OFFLINE_ACTIONS),
       ]);
 
       setSyncState({

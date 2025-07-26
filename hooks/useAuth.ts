@@ -1,16 +1,16 @@
-import { useState, useCallback, useEffect } from 'react';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useAPI } from './useAPI';
+import { useCallback, useEffect, useState } from 'react';
 import { ENDPOINTS, STORAGE_KEYS } from './config';
+import { storage } from './storage';
 import {
-  User,
+  APIResponse,
+  AuthState,
   LoginRequest,
+  LoginResponse,
   RegisterRequest,
   UpdateUserRequest,
-  LoginResponse,
-  AuthState,
-  APIResponse,
+  User,
 } from './types';
+import { useAPI } from './useAPI';
 
 // Hook para autenticación
 export const useAuth = () => {
@@ -34,8 +34,8 @@ export const useAuth = () => {
       setAuthState(prev => ({ ...prev, loading: true }));
 
       const [storedToken, storedUser] = await Promise.all([
-        AsyncStorage.getItem(STORAGE_KEYS.AUTH_TOKEN),
-        AsyncStorage.getItem(STORAGE_KEYS.USER_DATA),
+        storage.getItem(STORAGE_KEYS.AUTH_TOKEN),
+        storage.getItem(STORAGE_KEYS.USER_DATA),
       ]);
 
       if (storedToken && storedUser) {
@@ -68,8 +68,8 @@ export const useAuth = () => {
   const saveAuthData = useCallback(async (user: User, token: string) => {
     try {
       await Promise.all([
-        AsyncStorage.setItem(STORAGE_KEYS.AUTH_TOKEN, token),
-        AsyncStorage.setItem(STORAGE_KEYS.USER_DATA, JSON.stringify(user)),
+        storage.setItem(STORAGE_KEYS.AUTH_TOKEN, token),
+        storage.setItem(STORAGE_KEYS.USER_DATA, JSON.stringify(user)),
       ]);
     } catch (error) {
       console.error('Error saving auth data:', error);
@@ -80,8 +80,8 @@ export const useAuth = () => {
   const clearAuthData = useCallback(async () => {
     try {
       await Promise.all([
-        AsyncStorage.removeItem(STORAGE_KEYS.AUTH_TOKEN),
-        AsyncStorage.removeItem(STORAGE_KEYS.USER_DATA),
+        storage.removeItem(STORAGE_KEYS.AUTH_TOKEN),
+        storage.removeItem(STORAGE_KEYS.USER_DATA),
       ]);
     } catch (error) {
       console.error('Error clearing auth data:', error);
@@ -115,7 +115,7 @@ export const useAuth = () => {
       } else {
         throw new Error(response.message || 'Error en el login');
       }
-    } catch (error) {
+    } catch (error: any) {
       setAuthState(prev => ({
         ...prev,
         loading: false,
@@ -211,7 +211,7 @@ export const useAuth = () => {
         const updatedUser = response.data;
         
         // Actualizar AsyncStorage
-        await AsyncStorage.setItem(
+        await storage.setItem(
           STORAGE_KEYS.USER_DATA,
           JSON.stringify(updatedUser)
         );
@@ -246,7 +246,7 @@ export const useAuth = () => {
         const user = response.data;
         
         // Actualizar AsyncStorage
-        await AsyncStorage.setItem(
+        await storage.setItem(
           STORAGE_KEYS.USER_DATA,
           JSON.stringify(user)
         );

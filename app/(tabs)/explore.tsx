@@ -1,32 +1,28 @@
-import React, { useState, useEffect } from 'react';
-import {
-  View,
-  Text,
-  ScrollView,
-  TouchableOpacity,
-  Dimensions,
-  Platform,
-  Image,
-  StyleSheet,
-} from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { BlurView } from 'expo-blur';
 import { useRouter } from 'expo-router';
-import Animated, { 
-  useSharedValue, 
-  useAnimatedStyle, 
-  withSpring,
-  withTiming,
-  withRepeat,
-  interpolate,
-  FadeIn,
-  FadeInUp,
-  FadeInLeft,
-  FadeInRight,
+import React, { useEffect, useState } from 'react';
+import {
+    Dimensions,
+    Platform,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View
+} from 'react-native';
+import Animated, {
+    FadeIn,
+    FadeInLeft,
+    FadeInUp,
+    useAnimatedStyle,
+    useSharedValue,
+    withRepeat,
+    withSpring,
+    withTiming
 } from 'react-native-reanimated';
-import { KompaColors, GlobalStyles, ComponentStyles, FontSizes, Spacing } from '../../constants/Styles';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { ComponentStyles, FontSizes, GlobalStyles, KompaColors, Spacing } from '../../constants/Styles';
 
 const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
 const isWeb = Platform.OS === 'web';

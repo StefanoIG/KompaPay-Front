@@ -1,33 +1,32 @@
-import React, { useState, useEffect } from 'react';
-import {
-  View,
-  Text,
-  ScrollView,
-  TouchableOpacity,
-  RefreshControl,
-  Platform,
-  Alert,
-  TextInput,
-  Modal,
-  StyleSheet,
-} from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
-import Animated, { 
-  useSharedValue, 
-  useAnimatedStyle, 
-  withSpring,
+import { useRouter } from 'expo-router';
+import React, { useEffect, useState } from 'react';
+import {
+  Alert,
+  Modal,
+  Platform,
+  RefreshControl,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+} from 'react-native';
+import Animated, {
+  useAnimatedStyle,
+  useSharedValue,
   withRepeat,
   withSequence,
+  withSpring,
 } from 'react-native-reanimated';
-import { BlurView } from 'expo-blur';
 
+import { ComponentStyles, KompaColors } from '../../constants/Styles';
+import { Grupo } from '../../hooks/types';
 import { useAuth } from '../../hooks/useAuth';
-import { useGroups } from '../../hooks/useGroups';
 import { useExpenses } from '../../hooks/useExpenses';
-import { GlobalStyles, ComponentStyles, KompaColors, FontSizes, Spacing, BorderRadius, Shadows } from '../../constants/Styles';
-import { Grupo, Gasto } from '../../hooks/types';
+import { useGroups } from '../../hooks/useGroups';
 
 export default function Dashboard() {
   const router = useRouter();

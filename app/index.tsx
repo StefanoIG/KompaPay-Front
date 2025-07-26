@@ -1,29 +1,27 @@
-import React, { useState, useEffect } from 'react';
-import { 
-  View, 
-  Text, 
-  ScrollView, 
-  TouchableOpacity, 
-  StyleSheet, 
-  Platform,
-  Dimensions
-} from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { StatusBar } from 'expo-status-bar';
 import { useRouter } from 'expo-router';
-import Animated, { 
-  FadeIn, 
-  FadeInUp, 
-  FadeInDown, 
-  FadeInLeft,
-  FadeInRight,
-  useSharedValue,
-  useAnimatedStyle,
-  withRepeat,
-  withTiming,
-  interpolate
+import { StatusBar } from 'expo-status-bar';
+import React, { useEffect, useState } from 'react';
+import {
+    Dimensions,
+    Platform,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View
+} from 'react-native';
+import Animated, {
+    FadeIn,
+    FadeInLeft,
+    FadeInUp,
+    interpolate,
+    useAnimatedStyle,
+    useSharedValue,
+    withRepeat,
+    withTiming
 } from 'react-native-reanimated';
-import { KompaColors, GlobalStyles, ComponentStyles, FontSizes, Spacing } from '../constants/Styles';
+import { ComponentStyles, FontSizes, GlobalStyles, KompaColors, Spacing } from '../constants/Styles';
 
 const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
 const isWeb = Platform.OS === 'web';

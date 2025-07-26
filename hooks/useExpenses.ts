@@ -1,26 +1,31 @@
-import { useState, useCallback, useEffect } from 'react';
-import { useAPI } from './useAPI';
+import { useCallback, useEffect, useState } from 'react';
 import { ENDPOINTS } from './config';
 import {
-  Gasto,
-  CreateGastoRequest,
-  UpdateGastoRequest,
-  PayDebtRequest,
-  ExpensesState,
   APIResponse,
+  CreateGastoRequest,
   DeudaResumen,
+  ExpensesState,
+  Gasto,
   GroupExpensesParams,
+  PayDebtRequest,
+  UpdateGastoRequest,
 } from './types';
+import { useAPI } from './useAPI';
 
 // Hook para gestión de gastos
 export const useExpenses = () => {
   const { get, post, put, request } = useAPI();
-  const [expensesState, setExpensesState] = useState<ExpensesState>({
+  const [expensesState, setExpensesState] = useState<ExpensesState & {
+    debtsSummary?: any;
+    acreencias?: any[];
+  }>({
     expenses: [],
     myExpenses: [],
     groupExpenses: [],
     currentExpense: null,
     debts: [],
+    debtsSummary: undefined,
+    acreencias: [],
     loading: false,
     error: null,
     success: false,
@@ -268,12 +273,23 @@ export const useExpenses = () => {
     try {
       setExpensesState(prev => ({ ...prev, loading: true, error: null }));
 
-      const response: APIResponse<DeudaResumen[]> = await get(ENDPOINTS.EXPENSES.MY_DEBTS);
+      const response = await get(ENDPOINTS.EXPENSES.MY_DEBTS);
 
       if (response.success && response.data) {
         setExpensesState(prev => ({
           ...prev,
-          debts: response.data || [],
+          debts: Array.isArray(response.data.deudas) ? response.data.deudas : [],
+          acreencias: Array.isArray(response.data.acreencias) ? response.data.acreencias : [],
+          debtsSummary: response.data.resumen || {},
+          loading: false,
+          success: true,
+        }));
+      } else {
+        setExpensesState(prev => ({
+          ...prev,
+          debts: [],
+          acreencias: [],
+          debtsSummary: {},
           loading: false,
           success: true,
         }));
