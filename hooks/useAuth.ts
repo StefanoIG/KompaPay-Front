@@ -167,17 +167,22 @@ export const useAuth = () => {
   // Logout
   const logout = useCallback(async (): Promise<void> => {
     try {
+      console.log('Starting logout process in useAuth...'); // Debug log
       setAuthState(prev => ({ ...prev, loading: true }));
 
       // Intentar logout en el servidor (opcional, no bloquear si falla)
       try {
+        console.log('Sending logout request to server...'); // Debug log
         await post(ENDPOINTS.AUTH.LOGOUT);
+        console.log('Server logout successful'); // Debug log
       } catch (error) {
         console.warn('Error logging out from server:', error);
       }
 
       // Limpiar datos locales siempre
+      console.log('Clearing local auth data...'); // Debug log
       await clearAuthData();
+      console.log('Local auth data cleared'); // Debug log
       
       setAuthState({
         user: null,
@@ -187,13 +192,30 @@ export const useAuth = () => {
         error: null,
         success: true,
       });
+      
+      console.log('Logout process completed successfully'); // Debug log
     } catch (error) {
       console.error('Error during logout:', error);
-      setAuthState(prev => ({
-        ...prev,
-        loading: false,
-        error: 'Error al cerrar sesión',
-      }));
+      // Incluso si hay error, limpiar datos locales
+      try {
+        await clearAuthData();
+        setAuthState({
+          user: null,
+          token: null,
+          isAuthenticated: false,
+          loading: false,
+          error: null,
+          success: true,
+        });
+        console.log('Forced logout completed despite error'); // Debug log
+      } catch (clearError) {
+        console.error('Error clearing auth data during forced logout:', clearError);
+        setAuthState(prev => ({
+          ...prev,
+          loading: false,
+          error: 'Error al cerrar sesión',
+        }));
+      }
     }
   }, [post, clearAuthData]);
 

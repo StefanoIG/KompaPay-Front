@@ -90,7 +90,7 @@ export interface Gasto {
   id: string;
   grupo_id: string;
   descripcion: string;
-  monto_total: number; // Cambié de 'monto' a 'monto_total' para coincidir con el backend
+  monto: number; // El backend envía 'monto', no 'monto_total'
   tipo_division?: 'equitativa' | 'porcentaje' | 'personalizada';
   pagado_por: string;
   modificado_por?: string;
@@ -106,6 +106,16 @@ export interface Gasto {
   pagador?: User;
   modificador?: User;
   participantes?: GastoParticipante[];
+  pivot?: {
+    user_id: string;
+    gasto_id: string;
+    id: string;
+    monto_proporcional: number;
+    pagado: number; // 0 o 1
+    fecha_pago?: string;
+    created_at: string;
+    updated_at: string;
+  };
   conflictos?: SyncConflicto[];
   auditLogs?: AuditLog[];
 }
@@ -125,9 +135,10 @@ export interface GastoParticipante extends User {
 
 export interface CreateGastoRequest {
   id?: string; // ID generado por el cliente para gastos offline
+  id_publico?: string; // ID público único del gasto
   grupo_id: string;
   descripcion: string;
-  monto_total: number; // Cambié de 'monto' a 'monto_total'
+  monto_total: number; // Para enviar al backend sigue siendo 'monto_total'
   pagado_por: string; // Usuario que pagó el gasto
   participantes: {
     id_usuario: string; // Cambié de 'user_id' a 'id_usuario'
@@ -141,7 +152,7 @@ export interface CreateGastoRequest {
 
 export interface UpdateGastoRequest {
   descripcion?: string;
-  monto_total?: number; // Cambié de 'monto' a 'monto_total'
+  monto_total?: number; // Para enviar al backend sigue siendo 'monto_total'
   pagado_por?: string;
   participantes?: {
     id_usuario: string; // Cambié de 'user_id' a 'id_usuario'
@@ -241,10 +252,19 @@ export interface ExpensesState extends LoadingState {
   expenses: Gasto[];
   myExpenses: Gasto[];
   groupExpenses: Gasto[];
+  groupedExpenses: GastosPorGrupo[]; // Nueva propiedad para gastos agrupados
   currentExpense: Gasto | null;
   debts: DeudaResumen[];
+  debtsSummary: DeudaResponse | null; // Nueva propiedad para el resumen completo de deudas
   hasMore: boolean;
   page: number;
+}
+
+export interface GastosPorGrupo {
+  grupo: Grupo;
+  gastos: Gasto[];
+  totalGastos: number;
+  montoTotal: number;
 }
 
 export interface DeudaResumen {
@@ -259,6 +279,29 @@ export interface DeudaResumen {
   total_deuda: number;
   created_at: string;
   updated_at: string;
+}
+
+export interface DeudaItem {
+  gasto_id: string;
+  gasto_id_publico: string;
+  descripcion: string;
+  monto_total: string;
+  monto_adeudado: number;
+  pagado_por: string;
+  grupo: string;
+  fecha_creacion: string;
+}
+
+export interface ResumenDeudas {
+  total_deudas: number;
+  total_acreencias: number;
+  balance: number;
+}
+
+export interface DeudaResponse {
+  deudas: DeudaItem[];
+  acreencias: DeudaItem[];
+  resumen: ResumenDeudas;
 }
 
 export interface PayDebtRequest {

@@ -6,15 +6,13 @@ import {
   DeudaResumen,
   ExpensesState,
   Gasto,
+  DeudaResponse,
   GroupExpensesParams,
   PayDebtRequest,
   UpdateGastoRequest,
-} from './types';
 import { useAPI } from './useAPI';
 
-// Hook para gestión de gastos
 export const useExpenses = () => {
-  const { get, post, put, request } = useAPI();
   const [expensesState, setExpensesState] = useState<ExpensesState & {
     debtsSummary?: any;
     acreencias?: any[];
@@ -22,16 +20,43 @@ export const useExpenses = () => {
     expenses: [],
     myExpenses: [],
     groupExpenses: [],
+    groupedExpenses: [],
     currentExpense: null,
     debts: [],
     debtsSummary: undefined,
     acreencias: [],
+    debtsSummary: null,
     loading: false,
     error: null,
     success: false,
     hasMore: true,
     page: 1,
   });
+
+  // Función para agrupar gastos por grupo
+  const groupExpensesByGroup = (expenses: Gasto[]): GastosPorGrupo[] => {
+    const grouped = expenses.reduce((acc, expense) => {
+      if (!expense.grupo) return acc;
+      
+      const grupoId = expense.grupo.id;
+      if (!acc[grupoId]) {
+        acc[grupoId] = {
+          grupo: expense.grupo,
+          gastos: [],
+          totalGastos: 0,
+          montoTotal: 0
+        };
+      }
+      
+      acc[grupoId].gastos.push(expense);
+      acc[grupoId].totalGastos++;
+      acc[grupoId].montoTotal += parseFloat(expense.monto.toString());
+      
+      return acc;
+    }, {} as Record<string, GastosPorGrupo>);
+    
+    return Object.values(grouped);
+  };
 
   // Obtener mis gastos con paginación
   const fetchMyExpenses = useCallback(async (
@@ -43,29 +68,29 @@ export const useExpenses = () => {
         ...prev, 
         loading: true, 
         error: null,
-        ...(refresh && { myExpenses: [], page: 1, hasMore: true })
+        ...(refresh && { myExpenses: [], groupedExpenses: [], page: 1, hasMore: true })
       }));
 
       const endpoint = `${ENDPOINTS.EXPENSES.MY_EXPENSES}?page=${page}`;
-      const response: APIResponse<{
-        data: Gasto[];
-        current_page: number;
-        last_page: number;
-        per_page: number;
-        total: number;
-      }> = await get(endpoint);
+      const response: APIResponse<Gasto[]> = await get(endpoint);
 
       if (response.success && response.data) {
-        const { data: expenses, current_page, last_page } = response.data;
+        const expenses = Array.isArray(response.data) ? response.data : [];
         
-        setExpensesState(prev => ({
-          ...prev,
-          myExpenses: refresh ? expenses : [...prev.myExpenses, ...expenses],
-          loading: false,
-          success: true,
-          page: current_page,
-          hasMore: current_page < last_page,
-        }));
+        setExpensesState(prev => {
+          const newExpenses = refresh ? expenses : [...(Array.isArray(prev.myExpenses) ? prev.myExpenses : []), ...expenses];
+          const grouped = groupExpensesByGroup(newExpenses);
+          
+          return {
+            ...prev,
+            myExpenses: newExpenses,
+            groupedExpenses: grouped,
+            loading: false,
+            success: true,
+            page: page,
+            hasMore: expenses.length > 0, // Simplificado por ahora
+          };
+        });
       }
     } catch (error: any) {
       setExpensesState(prev => ({
@@ -121,7 +146,7 @@ export const useExpenses = () => {
         
         setExpensesState(prev => ({
           ...prev,
-          groupExpenses: refresh ? expenses : [...prev.groupExpenses, ...expenses],
+          groupExpenses: refresh ? expenses : [...(Array.isArray(prev.groupExpenses) ? prev.groupExpenses : []), ...expenses],
           loading: false,
           success: true,
           page: current_page,
@@ -179,14 +204,21 @@ export const useExpenses = () => {
       if (response.success && response.data) {
         const newExpense = response.data;
         
-        setExpensesState(prev => ({
-          ...prev,
-          myExpenses: [newExpense, ...prev.myExpenses],
-          groupExpenses: [newExpense, ...prev.groupExpenses],
-          currentExpense: newExpense,
-          loading: false,
-          success: true,
-        }));
+        setExpensesState(prev => {
+          const updatedMyExpenses = [newExpense, ...(Array.isArray(prev.myExpenses) ? prev.myExpenses : [])];
+          const updatedGroupExpenses = [newExpense, ...(Array.isArray(prev.groupExpenses) ? prev.groupExpenses : [])];
+          const updatedGroupedExpenses = groupExpensesByGroup(updatedMyExpenses);
+          
+          return {
+            ...prev,
+            myExpenses: updatedMyExpenses,
+            groupExpenses: updatedGroupExpenses,
+            groupedExpenses: updatedGroupedExpenses,
+            currentExpense: newExpense,
+            loading: false,
+            success: true,
+          };
+        });
 
         return newExpense;
       }
@@ -274,6 +306,7 @@ export const useExpenses = () => {
       setExpensesState(prev => ({ ...prev, loading: true, error: null }));
 
       const response = await get(ENDPOINTS.EXPENSES.MY_DEBTS);
+      const response: APIResponse<DeudaResponse> = await get(ENDPOINTS.EXPENSES.MY_DEBTS);
 
       if (response.success && response.data) {
         setExpensesState(prev => ({
@@ -290,6 +323,8 @@ export const useExpenses = () => {
           debts: [],
           acreencias: [],
           debtsSummary: {},
+          debtsSummary: response.data || null,
+          debts: [], // Mantener compatibilidad por ahora
           loading: false,
           success: true,
         }));

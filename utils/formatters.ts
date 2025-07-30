@@ -25,6 +25,28 @@ export const formatCurrency = (
 };
 
 /**
+ * Formatea un número como moneda con decimales opcionales
+ * Solo muestra decimales si son diferentes de .00
+ * @param amount - Cantidad a formatear
+ * @param showSign - Si mostrar el símbolo de moneda (por defecto: true)
+ */
+export const formatCurrencyOptional = (
+  amount: number,
+  showSign: boolean = true
+): string => {
+  const hasDecimals = amount % 1 !== 0;
+  const formatted = Math.abs(amount).toLocaleString('es-CO', {
+    minimumFractionDigits: hasDecimals ? 2 : 0,
+    maximumFractionDigits: 2,
+  });
+  
+  const sign = showSign ? '$' : '';
+  const prefix = amount < 0 ? '-' : '';
+  
+  return `${prefix}${sign}${formatted}`;
+};
+
+/**
  * Formatea un número sin símbolo de moneda
  * @param amount - Cantidad a formatear
  * @param locale - Configuración regional (por defecto: 'es-CO')
