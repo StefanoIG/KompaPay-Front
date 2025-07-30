@@ -3,13 +3,15 @@ import { ENDPOINTS } from './config';
 import {
   APIResponse,
   CreateGastoRequest,
+  DeudaResponse,
   DeudaResumen,
   ExpensesState,
   Gasto,
-  DeudaResponse,
+  GastosPorGrupo,
   GroupExpensesParams,
   PayDebtRequest,
   UpdateGastoRequest,
+} from './types';
 import { useAPI } from './useAPI';
 
 export const useExpenses = () => {
@@ -23,7 +25,6 @@ export const useExpenses = () => {
     groupedExpenses: [],
     currentExpense: null,
     debts: [],
-    debtsSummary: undefined,
     acreencias: [],
     debtsSummary: null,
     loading: false,
@@ -32,6 +33,9 @@ export const useExpenses = () => {
     hasMore: true,
     page: 1,
   });
+
+  // API helpers
+  const { get, post, put, delete: del, request } = useAPI();
 
   // Función para agrupar gastos por grupo
   const groupExpensesByGroup = (expenses: Gasto[]): GastosPorGrupo[] => {
@@ -305,7 +309,6 @@ export const useExpenses = () => {
     try {
       setExpensesState(prev => ({ ...prev, loading: true, error: null }));
 
-      const response = await get(ENDPOINTS.EXPENSES.MY_DEBTS);
       const response: APIResponse<DeudaResponse> = await get(ENDPOINTS.EXPENSES.MY_DEBTS);
 
       if (response.success && response.data) {
@@ -322,9 +325,7 @@ export const useExpenses = () => {
           ...prev,
           debts: [],
           acreencias: [],
-          debtsSummary: {},
           debtsSummary: response.data || null,
-          debts: [], // Mantener compatibilidad por ahora
           loading: false,
           success: true,
         }));

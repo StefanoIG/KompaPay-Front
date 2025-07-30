@@ -1,194 +1,148 @@
 import { LinearGradient } from 'expo-linear-gradient';
-import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import {
-    Dimensions,
-    Platform,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View
+  Platform,
+  ScrollView,
+  Text,
+  TouchableOpacity,
+  View,
+  useWindowDimensions,
 } from 'react-native';
 import Animated, {
-    FadeIn,
-    FadeInLeft,
-    FadeInUp,
-    interpolate,
-    useAnimatedStyle,
-    useSharedValue,
-    withRepeat,
-    withTiming
+  FadeIn,
+  FadeInLeft,
+  FadeInUp
 } from 'react-native-reanimated';
-import { ComponentStyles, FontSizes, GlobalStyles, KompaColors, Spacing } from '../constants/Styles';
+import { ComponentStyles, KompaColors } from '../constants/Styles';
+import { useHomePageLogic } from '../hooks/useHomePageLogic';
+import { homeStyles } from '../styles/home.styles';
 
-const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
-const isWeb = Platform.OS === 'web';
-const isLargeScreen = screenWidth > 768;
-
-// Componente de Feature Card
-const FeatureCard = ({ icon, title, description, delay = 0 }: {
+type FeatureCardProps = {
   icon: string;
   title: string;
   description: string;
   delay?: number;
-}) => (
-  <Animated.View 
-    entering={FadeInUp.delay(delay).duration(800)}
-    style={[styles.featureCard, isWeb && isLargeScreen && styles.featureCardWeb]}
-  >
-    <View style={styles.featureIcon}>
-      <Text style={styles.featureIconText}>{icon}</Text>
-    </View>
-    <Text style={styles.featureTitle}>{title}</Text>
-    <Text style={styles.featureDescription}>{description}</Text>
-  </Animated.View>
-);
+};
+function FeatureCard({ icon, title, description, delay = 0 }: FeatureCardProps) {
+  return (
+    <Animated.View
+      entering={FadeInUp.delay(delay).duration(800)}
+      style={homeStyles.featureCard}
+    >
+      <View style={homeStyles.featureIcon}>
+        <Text style={homeStyles.featureIconText}>{icon}</Text>
+      </View>
+      <Text style={homeStyles.featureTitle}>{title}</Text>
+      <Text style={homeStyles.featureDescription}>{description}</Text>
+    </Animated.View>
+  );
+}
 
-// Componente de Estadística
-const StatCard = ({ number, label, delay = 0 }: {
+type StatCardProps = {
   number: string;
   label: string;
   delay?: number;
-}) => (
-  <Animated.View 
-    entering={FadeInUp.delay(delay).duration(800)}
-    style={[styles.statCard, isWeb && isLargeScreen && styles.statCardWeb]}
-  >
-    <Text style={styles.statNumber}>{number}</Text>
-    <Text style={styles.statLabel}>{label}</Text>
-  </Animated.View>
-);
+};
+function StatCard({ number, label, delay = 0 }: StatCardProps) {
+  return (
+    <Animated.View
+      entering={FadeInUp.delay(delay).duration(800)}
+      style={homeStyles.statCard}
+    >
+      <Text style={homeStyles.statNumber}>{number}</Text>
+      <Text style={homeStyles.statLabel}>{label}</Text>
+    </Animated.View>
+  );
+}
 
-// Componente de Beneficio
-const BenefitItem = ({ icon, text, delay = 0 }: {
+type BenefitItemProps = {
   icon: string;
   text: string;
   delay?: number;
-}) => (
-  <Animated.View 
-    entering={FadeInLeft.delay(delay).duration(600)}
-    style={styles.benefitItem}
-  >
-    <View style={styles.benefitIcon}>
-      <Text style={styles.benefitIconText}>{icon}</Text>
-    </View>
-    <Text style={styles.benefitText}>{text}</Text>
-  </Animated.View>
-);
+};
+function BenefitItem({ icon, text, delay = 0 }: BenefitItemProps) {
+  return (
+    <Animated.View
+      entering={FadeInLeft.delay(delay).duration(600)}
+      style={homeStyles.benefitItem}
+    >
+      <View style={homeStyles.benefitIcon}>
+        <Text style={homeStyles.benefitIconText}>{icon}</Text>
+      </View>
+      <Text style={homeStyles.benefitText}>{text}</Text>
+    </Animated.View>
+  );
+}
+
 
 export default function HomePage() {
-  const router = useRouter();
-  const [currentTestimonial, setCurrentTestimonial] = useState(0);
-  
-  // Animaciones flotantes
-  const floatingAnimation = useSharedValue(0);
-  
-  useEffect(() => {
-    floatingAnimation.value = withRepeat(
-      withTiming(1, { duration: 3000 }),
-      -1,
-      true
-    );
-  }, []);
-
-  const animatedFloatingStyle = useAnimatedStyle(() => {
-    return {
-      transform: [
-        {
-          translateY: interpolate(floatingAnimation.value, [0, 1], [0, -10])
-        }
-      ]
-    };
-  });
-
-  // Datos de testimonios
-  const testimonials = [
-    {
-      text: "KompaPay ha revolucionado cómo gestiono los gastos con mis compañeros de piso",
-      author: "María González",
-      role: "Estudiante"
-    },
-    {
-      text: "Perfecto para organizar gastos familiares y viajes en grupo",
-      author: "Carlos Ruiz",
-      role: "Padre de familia"
-    },
-    {
-      text: "La sincronización offline es increíble, nunca pierdo datos",
-      author: "Ana López",
-      role: "Profesional"
-    }
-  ];
-
-  const handleGetStarted = () => {
-    router.push('/(auth)/login');
-  };
-
-  const handleViewDemo = () => {
-    router.push('/(tabs)/explore');
-  };
+  // Responsive helpers
+  const { width } = useWindowDimensions();
+  const isWeb = Platform.OS === 'web';
+  const isLargeScreen = width > 768;
+  const {
+    currentTestimonial,
+    setCurrentTestimonial,
+    animatedFloatingStyle,
+    testimonials,
+    handleGetStarted,
+    handleViewDemo,
+  } = useHomePageLogic();
 
   return (
-    <View style={styles.container}>
+    <View style={homeStyles.container}>
       <StatusBar style="light" />
-      
-      <ScrollView 
-        style={styles.scrollView}
+      <ScrollView
+        style={homeStyles.scrollView}
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={homeStyles.scrollContent}
       >
         {/* Hero Section */}
         <LinearGradient
           colors={[KompaColors.primary, KompaColors.secondary]}
-          style={[styles.heroSection, isWeb && isLargeScreen && styles.heroSectionWeb]}
+          style={[homeStyles.heroSection, isWeb && isLargeScreen && homeStyles.heroSectionWeb]}
         >
-          <View style={styles.heroContent}>
-            <Animated.View 
+          <View style={homeStyles.heroContent}>
+            <Animated.View
               style={animatedFloatingStyle}
               entering={FadeIn.delay(200).duration(1000)}
             >
-              <Text style={styles.heroEmoji}>💰</Text>
+              <Text style={homeStyles.heroEmoji}>💰</Text>
             </Animated.View>
-            
-            <Animated.Text 
+            <Animated.Text
               entering={FadeInUp.delay(400).duration(800)}
-              style={[ComponentStyles.textHero, styles.heroTitle]}
+              style={[ComponentStyles.textHero, homeStyles.heroTitle]}
             >
               KompaPay
             </Animated.Text>
-            
-            <Animated.Text 
+            <Animated.Text
               entering={FadeInUp.delay(600).duration(800)}
-              style={[ComponentStyles.textSubtitle, styles.heroSubtitle]}
+              style={[ComponentStyles.textSubtitle, homeStyles.heroSubtitle]}
             >
               La forma más inteligente de gestionar gastos compartidos
             </Animated.Text>
-
-            <Animated.View 
+            <Animated.View
               entering={FadeInUp.delay(800).duration(800)}
-              style={[styles.heroButtons, isWeb && isLargeScreen && styles.heroButtonsWeb]}
+              style={[homeStyles.heroButtons, isWeb && isLargeScreen && homeStyles.heroButtonsWeb]}
             >
-              <TouchableOpacity 
-                style={[ComponentStyles.button, styles.primaryButton]}
+              <TouchableOpacity
+                style={[ComponentStyles.button, homeStyles.primaryButton]}
                 onPress={handleGetStarted}
               >
-                <Text style={styles.primaryButtonText}>Comenzar Ahora</Text>
+                <Text style={homeStyles.primaryButtonText}>Comenzar Ahora</Text>
               </TouchableOpacity>
-              
-              <TouchableOpacity 
-                style={[ComponentStyles.buttonSecondary, styles.secondaryButton]}
+              <TouchableOpacity
+                style={[ComponentStyles.buttonSecondary, homeStyles.secondaryButton]}
                 onPress={handleViewDemo}
               >
-                <Text style={styles.secondaryButtonText}>Ver Funcionalidades</Text>
+                <Text style={homeStyles.secondaryButtonText}>Ver Funcionalidades</Text>
               </TouchableOpacity>
             </Animated.View>
-
             {/* Stats */}
-            <Animated.View 
+            <Animated.View
               entering={FadeInUp.delay(1000).duration(800)}
-              style={[styles.statsContainer, isWeb && isLargeScreen && styles.statsContainerWeb]}
+              style={[homeStyles.statsContainer, isWeb && isLargeScreen && homeStyles.statsContainerWeb]}
             >
               <StatCard number="50K+" label="Usuarios Activos" delay={1200} />
               <StatCard number="1M+" label="Gastos Gestionados" delay={1400} />
@@ -196,17 +150,15 @@ export default function HomePage() {
             </Animated.View>
           </View>
         </LinearGradient>
-
         {/* Features Section */}
-        <View style={styles.section}>
-          <Animated.Text 
+        <View style={homeStyles.section}>
+          <Animated.Text
             entering={FadeInUp.delay(200).duration(800)}
-            style={[ComponentStyles.textTitle, styles.sectionTitle]}
+            style={[ComponentStyles.textTitle, homeStyles.sectionTitle]}
           >
             ¿Por qué elegir KompaPay?
           </Animated.Text>
-          
-          <View style={[styles.featuresGrid, isWeb && isLargeScreen && styles.featuresGridWeb]}>
+          <View style={[homeStyles.featuresGrid, isWeb && isLargeScreen && homeStyles.featuresGridWeb]}>
             <FeatureCard
               icon="🤖"
               title="IA Inteligente"
@@ -245,73 +197,69 @@ export default function HomePage() {
             />
           </View>
         </View>
-
         {/* Benefits Section */}
         <LinearGradient
           colors={[KompaColors.gray50, KompaColors.surface]}
-          style={styles.benefitsSection}
+          style={homeStyles.benefitsSection}
         >
-          <View style={styles.container}>
-            <Animated.Text 
+          <View style={homeStyles.container}>
+            <Animated.Text
               entering={FadeInUp.delay(200).duration(800)}
-              style={[ComponentStyles.textTitle, styles.sectionTitle]}
+              style={[ComponentStyles.textTitle, homeStyles.sectionTitle]}
             >
               Beneficios que marcan la diferencia
             </Animated.Text>
-            
-            <View style={[styles.benefitsList, isWeb && isLargeScreen && styles.benefitsListWeb]}>
-              <BenefitItem 
-                icon="⚡" 
-                text="Ahorra tiempo con división automática de gastos" 
+            <View style={[homeStyles.benefitsList, isWeb && isLargeScreen && homeStyles.benefitsListWeb]}>
+              <BenefitItem
+                icon="⚡"
+                text="Ahorra tiempo con división automática de gastos"
                 delay={400}
               />
-              <BenefitItem 
-                icon="💡" 
-                text="Evita conflictos con transparencia total" 
+              <BenefitItem
+                icon="💡"
+                text="Evita conflictos con transparencia total"
                 delay={600}
               />
-              <BenefitItem 
-                icon="📈" 
-                text="Optimiza tus finanzas con insights inteligentes" 
+              <BenefitItem
+                icon="📈"
+                text="Optimiza tus finanzas con insights inteligentes"
                 delay={800}
               />
-              <BenefitItem 
-                icon="🎯" 
-                text="Mantén el control con notificaciones inteligentes" 
+              <BenefitItem
+                icon="🎯"
+                text="Mantén el control con notificaciones inteligentes"
                 delay={1000}
               />
-              <BenefitItem 
-                icon="🤝" 
-                text="Fortalece relaciones con gestión justa" 
+              <BenefitItem
+                icon="🤝"
+                text="Fortalece relaciones con gestión justa"
                 delay={1200}
               />
-              <BenefitItem 
-                icon="🌟" 
-                text="Experiencia premium sin complicaciones" 
+              <BenefitItem
+                icon="🌟"
+                text="Experiencia premium sin complicaciones"
                 delay={1400}
               />
             </View>
           </View>
         </LinearGradient>
-
         {/* CTA Section */}
-        <View style={styles.section}>
-          <Animated.View 
+        <View style={homeStyles.section}>
+          <Animated.View
             entering={FadeInUp.delay(200).duration(800)}
-            style={styles.ctaContainer}
+            style={homeStyles.ctaContainer}
           >
-            <Text style={[ComponentStyles.textTitle, styles.ctaTitle]}>
+            <Text style={[ComponentStyles.textTitle, homeStyles.ctaTitle]}>
               ¿Listo para simplificar tus gastos?
             </Text>
-            <Text style={[ComponentStyles.textSubtitle, styles.ctaSubtitle]}>
+            <Text style={[ComponentStyles.textSubtitle, homeStyles.ctaSubtitle]}>
               Únete a miles de usuarios que ya gestionan sus gastos de forma inteligente
             </Text>
-            
-            <TouchableOpacity 
-              style={[ComponentStyles.button, styles.ctaButton]}
+            <TouchableOpacity
+              style={[ComponentStyles.button, homeStyles.ctaButton]}
               onPress={handleGetStarted}
             >
-              <Text style={styles.primaryButtonText}>Comenzar Gratis</Text>
+              <Text style={homeStyles.primaryButtonText}>Comenzar Gratis</Text>
             </TouchableOpacity>
           </Animated.View>
         </View>
@@ -320,232 +268,3 @@ export default function HomePage() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: KompaColors.background,
-  },
-  scrollView: {
-    flex: 1,
-  },
-  scrollContent: {
-    flexGrow: 1,
-  },
-  
-  // Hero Section
-  heroSection: {
-    minHeight: isWeb ? (isLargeScreen ? screenHeight : screenHeight * 0.8) : screenHeight * 0.9,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingVertical: Spacing.xxxl,
-  },
-  heroSectionWeb: {
-    minHeight: screenHeight,
-  },
-  heroContent: {
-    alignItems: 'center',
-    width: '100%',
-    maxWidth: isWeb && isLargeScreen ? 1200 : '90%',
-    paddingHorizontal: Spacing.lg,
-  },
-  heroEmoji: {
-    fontSize: isWeb && isLargeScreen ? 120 : 80,
-    marginBottom: Spacing.lg,
-  },
-  heroTitle: {
-    color: KompaColors.surface,
-    marginBottom: Spacing.md,
-  },
-  heroSubtitle: {
-    color: KompaColors.surface,
-    opacity: 0.9,
-    marginBottom: Spacing.xxl,
-    maxWidth: isWeb && isLargeScreen ? 600 : '90%',
-  },
-  heroButtons: {
-    flexDirection: isWeb && isLargeScreen ? 'row' : 'column',
-    gap: Spacing.md,
-    marginBottom: Spacing.xxl,
-    width: '100%',
-    alignItems: 'center',
-  },
-  heroButtonsWeb: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-  },
-  primaryButton: {
-    minWidth: isWeb && isLargeScreen ? 200 : '80%',
-    backgroundColor: KompaColors.surface,
-  },
-  primaryButtonText: {
-    color: KompaColors.primary,
-    fontSize: FontSizes.md,
-    fontWeight: '600',
-  },
-  secondaryButton: {
-    minWidth: isWeb && isLargeScreen ? 200 : '80%',
-    backgroundColor: 'transparent',
-    borderColor: KompaColors.surface,
-  },
-  secondaryButtonText: {
-    color: KompaColors.surface,
-    fontSize: FontSizes.md,
-    fontWeight: '600',
-  },
-  
-  // Stats
-  statsContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    width: '100%',
-    maxWidth: 600,
-  },
-  statsContainerWeb: {
-    maxWidth: 800,
-  },
-  statCard: {
-    alignItems: 'center',
-    flex: 1,
-  },
-  statCardWeb: {
-    paddingHorizontal: Spacing.lg,
-  },
-  statNumber: {
-    fontSize: isWeb && isLargeScreen ? FontSizes.xxxl : FontSizes.xxl,
-    fontWeight: 'bold',
-    color: KompaColors.surface,
-    marginBottom: Spacing.xs,
-  },
-  statLabel: {
-    fontSize: FontSizes.sm,
-    color: KompaColors.surface,
-    opacity: 0.8,
-    textAlign: 'center',
-  },
-  
-  // Sections
-  section: {
-    paddingVertical: Spacing.xxxl,
-    paddingHorizontal: Spacing.lg,
-    maxWidth: isWeb && isLargeScreen ? 1200 : '100%',
-    alignSelf: 'center',
-    width: '100%',
-  },
-  sectionTitle: {
-    textAlign: 'center',
-    marginBottom: Spacing.xxl,
-    fontSize: isWeb && isLargeScreen ? FontSizes.heading : FontSizes.title,
-  },
-  
-  // Features
-  featuresGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
-    gap: Spacing.lg,
-  },
-  featuresGridWeb: {
-    justifyContent: 'center',
-  },
-  featureCard: {
-    backgroundColor: KompaColors.surface,
-    borderRadius: GlobalStyles.borderRadius.lg,
-    padding: Spacing.lg,
-    alignItems: 'center',
-    width: isWeb && isLargeScreen ? '30%' : '100%',
-    minWidth: isWeb && isLargeScreen ? 280 : undefined,
-    marginBottom: Spacing.lg,
-    ...GlobalStyles.shadow.md,
-  },
-  featureCardWeb: {
-    width: '30%',
-    minWidth: 300,
-  },
-  featureIcon: {
-    width: 60,
-    height: 60,
-    backgroundColor: KompaColors.primary,
-    borderRadius: 30,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: Spacing.md,
-  },
-  featureIconText: {
-    fontSize: 24,
-  },
-  featureTitle: {
-    fontSize: FontSizes.lg,
-    fontWeight: '600',
-    color: KompaColors.textPrimary,
-    marginBottom: Spacing.sm,
-    textAlign: 'center',
-  },
-  featureDescription: {
-    fontSize: FontSizes.md,
-    color: KompaColors.textSecondary,
-    textAlign: 'center',
-    lineHeight: FontSizes.md * 1.4,
-  },
-  
-  // Benefits
-  benefitsSection: {
-    paddingVertical: Spacing.xxxl,
-  },
-  benefitsList: {
-    gap: Spacing.lg,
-  },
-  benefitsListWeb: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
-  },
-  benefitItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: KompaColors.background,
-    padding: Spacing.lg,
-    borderRadius: GlobalStyles.borderRadius.md,
-    ...GlobalStyles.shadow.sm,
-    width: isWeb && isLargeScreen ? '48%' : '100%',
-  },
-  benefitIcon: {
-    width: 40,
-    height: 40,
-    backgroundColor: KompaColors.primaryLight,
-    borderRadius: 20,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: Spacing.md,
-  },
-  benefitIconText: {
-    fontSize: 18,
-  },
-  benefitText: {
-    fontSize: FontSizes.md,
-    color: KompaColors.textPrimary,
-    flex: 1,
-    fontWeight: '500',
-  },
-  
-  // CTA
-  ctaContainer: {
-    backgroundColor: KompaColors.surface,
-    borderRadius: GlobalStyles.borderRadius.xl,
-    padding: Spacing.xxl,
-    alignItems: 'center',
-    ...GlobalStyles.shadow.lg,
-  },
-  ctaTitle: {
-    textAlign: 'center',
-    marginBottom: Spacing.md,
-  },
-  ctaSubtitle: {
-    textAlign: 'center',
-    marginBottom: Spacing.xxl,
-    maxWidth: isWeb && isLargeScreen ? 500 : '100%',
-  },
-  ctaButton: {
-    minWidth: isWeb && isLargeScreen ? 250 : '80%',
-    paddingVertical: Spacing.lg,
-  },
-});

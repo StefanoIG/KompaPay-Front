@@ -1,29 +1,6 @@
-import React, { useEffect, useState } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Platform, Alert, Modal, TextInput, RefreshControl } from 'react-native';
-import { useRouter } from 'expo-router';
-import { useAuth } from '../../hooks/useAuth';
-import { useGroups } from '../../hooks/useGroups';
-import { useExpenses } from '../../hooks/useExpenses';
-import { ComponentStyles } from '../../constants/Styles';
-import { KompaColors } from '../../constants/Styles';
-import { Ionicons } from '@expo/vector-icons';
-import Animated, { useSharedValue, useAnimatedStyle, withSpring, withRepeat, withSequence } from 'react-native-reanimated';
-import { LinearGradient } from 'expo-linear-gradient';
-import type { Grupo } from '../../hooks/types';
-export default function TabIndexScreen() {
-  const router = useRouter();
-  const { user, logout } = useAuth();
-  const {
-    groups = [],
-    loading: groupsLoading,
-    fetchGroups,
-    createGroup,
-    joinGroup,
-  } = useGroups();
-  // ...existing code...
-}
+import { Platform, StyleSheet } from 'react-native';
 
-const styles = StyleSheet.create({
+export const dashboardStyles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#f8f9fa',
@@ -296,75 +273,8 @@ const styles = StyleSheet.create({
   },
   logoutButton: {
     backgroundColor: '#dc3545',
-    borderWidth: 0,
   },
   logoutText: {
     color: 'white',
-    fontWeight: '600',
-  },
-  quickNavigationContainer: {
-    marginHorizontal: 16,
-    marginBottom: 20,
-    backgroundColor: 'white',
-    borderRadius: 12,
-    padding: 16,
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 4,
-      },
-      android: {
-        elevation: 3,
-      },
-    }),
-  },
-  quickNavigationGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 12,
-    justifyContent: 'space-between',
-  },
-  quickNavButton: {
-    flex: 1,
-    minWidth: '30%',
-    backgroundColor: '#f8f9fa',
-    borderRadius: 12,
-    padding: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 2,
-    borderColor: 'transparent',
-  },
-  activeQuickNavButton: {
-    backgroundColor: KompaColors.primary,
-    borderColor: KompaColors.primaryDark,
-  },
-  quickNavText: {
-    fontSize: 12,
-    fontWeight: '600',
-    marginTop: 4,
-    textAlign: 'center',
-  },
-  globalQuickNavigationContainer: {
-    position: 'absolute',
-    bottom: 70, // Aparece justo arriba de la barra de navegación
-    left: 16,
-    right: 16,
-    backgroundColor: 'white',
-    borderRadius: 12,
-    padding: 16,
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.15,
-        shadowRadius: 8,
-      },
-      android: {
-        elevation: 8,
-      },
-    }),
   },
 });
