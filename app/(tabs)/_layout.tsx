@@ -1,91 +1,67 @@
-import { Tabs } from 'expo-router';
+// app/(tabs)/_layout.tsx
+
 import React, { useState } from 'react';
-import { Platform, View, TouchableOpacity, Text, StyleSheet } from 'react-native';
+import { Tabs, useRouter } from 'expo-router';
+import { Platform, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 
 import { HapticTab } from '@/components/HapticTab';
 import { IconSymbol } from '@/components/ui/IconSymbol';
 import TabBarBackground from '@/components/ui/TabBarBackground';
 import { KompaColors } from '@/constants/Styles';
-import { useColorScheme } from '@/hooks/useColorScheme';
-import { Ionicons } from '@expo/vector-icons';
+import { useAuthContext } from '@/providers/AuthProvider'; // 1. Importar el contexto de Auth
 
 export default function TabLayout() {
-  const colorScheme = useColorScheme();
   const [showQuickNavigation, setShowQuickNavigation] = useState(false);
+  const router = useRouter();
+  const { logout } = useAuthContext(); // 2. Obtener la función de logout
 
-  const QuickNavigationMenu = () => (
-    showQuickNavigation && (
+  // He movido el menú a su propio componente para mayor claridad
+  const QuickNavigationMenu = () => {
+    const handleNavigate = (path: string) => {
+      router.push(path as any);
+      setShowQuickNavigation(false);
+    };
+
+    const handleLogout = () => {
+      logout();
+      // El AuthProvider se encargará de la redirección
+      setShowQuickNavigation(false);
+    };
+
+    return (
       <View style={styles.quickNavigationContainer}>
         <View style={styles.quickNavigationGrid}>
-          <TouchableOpacity 
-            style={styles.quickNavButton}
-            onPress={() => {
-              // Navegar a Dashboard
-              setShowQuickNavigation(false);
-            }}
-          >
+          {/* 3. Añadida la navegación real a cada botón */}
+          <TouchableOpacity style={styles.quickNavButton} onPress={() => handleNavigate('/(tabs)/dashboard')}>
             <Ionicons name="home" size={20} color={KompaColors.primary} />
             <Text style={styles.quickNavText}>Dashboard</Text>
           </TouchableOpacity>
-          
-          <TouchableOpacity 
-            style={styles.quickNavButton}
-            onPress={() => {
-              // Navegar a Grupos  
-              setShowQuickNavigation(false);
-            }}
-          >
-            <Ionicons name="people" size={20} color={KompaColors.secondary} />
-            <Text style={styles.quickNavText}>Grupos</Text>
-          </TouchableOpacity>
-          
-          <TouchableOpacity 
-            style={styles.quickNavButton}
-            onPress={() => {
-              // Navegar a Gastos
-              setShowQuickNavigation(false);
-            }}
-          >
-            <Ionicons name="receipt" size={20} color={KompaColors.warning} />
-            <Text style={styles.quickNavText}>Gastos</Text>
-          </TouchableOpacity>
-          
-          <TouchableOpacity 
-            style={styles.quickNavButton}
-            onPress={() => {
-              // Navegar a Reportes
-              setShowQuickNavigation(false);
-            }}
-          >
+          <TouchableOpacity style={styles.quickNavButton} onPress={() => handleNavigate('/(tabs)/reportes')}>
             <Ionicons name="analytics" size={20} color={KompaColors.info} />
             <Text style={styles.quickNavText}>Reportes</Text>
           </TouchableOpacity>
-          
-          <TouchableOpacity 
-            style={styles.quickNavButton}
-            onPress={() => {
-              // Navegar a Perfil
-              setShowQuickNavigation(false);
-            }}
-          >
-            <Ionicons name="person" size={20} color={KompaColors.info} />
-            <Text style={styles.quickNavText}>Perfil</Text>
+          <TouchableOpacity style={styles.quickNavButton} onPress={() => handleNavigate('/colaboracion/tablero_tareas')}>
+            <Ionicons name="albums" size={20} color={KompaColors.secondary} />
+            <Text style={styles.quickNavText}>Tableros</Text>
           </TouchableOpacity>
-          
-          <TouchableOpacity 
-            style={styles.quickNavButton}
-            onPress={() => {
-              // Cerrar sesión
-              setShowQuickNavigation(false);
-            }}
-          >
+          <TouchableOpacity style={styles.quickNavButton} onPress={() => handleNavigate('/colaboracion/tablero_tareas')}>
+            <Ionicons name="albums-outline" size={20} color={KompaColors.secondary} />
+            <Text style={styles.quickNavText}>Tableros</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.quickNavButton} onPress={() => handleNavigate('/colaboracion/notas')}>
+            <Ionicons name="document-text-outline" size={20} color={KompaColors.warning} />
+            <Text style={styles.quickNavText}>Notas</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.quickNavButton} onPress={handleLogout}>
             <Ionicons name="log-out" size={20} color={KompaColors.error} />
             <Text style={styles.quickNavText}>Cerrar Sesión</Text>
           </TouchableOpacity>
+
         </View>
       </View>
-    )
-  );
+    );
+  };
 
   return (
     <>
@@ -97,30 +73,27 @@ export default function TabLayout() {
           tabBarButton: HapticTab,
           tabBarBackground: TabBarBackground,
           tabBarStyle: Platform.select({
-            ios: {
-              position: 'absolute',
-              backgroundColor: 'transparent',
-            },
-            default: {
-              backgroundColor: KompaColors.background,
-              borderTopColor: KompaColors.gray200,
-              borderTopWidth: 1,
-            },
+            ios: { position: 'absolute', backgroundColor: 'transparent' },
+            default: { backgroundColor: KompaColors.background, borderTopColor: KompaColors.gray200 },
           }),
-        }}>
+        }}
+      >
+        {/* 4. La pestaña principal ahora es el dashboard refactorizado */}
         <Tabs.Screen
-          name="index"
+          name="dashboard"
           options={{
             title: 'Inicio',
             tabBarIcon: ({ color, focused }) => (
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
                 <IconSymbol size={28} name={focused ? 'house.fill' : 'house'} color={color} />
-                <TouchableOpacity
-                  onPress={() => setShowQuickNavigation(!showQuickNavigation)}
-                  style={{ padding: 2 }}
-                >
-                  <Text style={{ fontSize: 16, color }}>⏷</Text>
-                </TouchableOpacity>
+                {Platform.OS === 'web' && (
+                  <TouchableOpacity
+                    onPress={() => setShowQuickNavigation(!showQuickNavigation)}
+                    style={{ padding: 2 }}
+                  >
+                    <Text style={{ fontSize: 16, color, transform: [{ rotate: showQuickNavigation ? '180deg' : '0deg' }] }}>⏷</Text>
+                  </TouchableOpacity>
+                )}
               </View>
             ),
           }}
@@ -143,8 +116,15 @@ export default function TabLayout() {
             ),
           }}
         />
+
+        {/* 5. Ocultar la pantalla 'index' y otras que no queramos en la barra de pestañas */}
+        <Tabs.Screen name="index" options={{ href: null }} />
+        <Tabs.Screen name="explore2" options={{ href: null }} />
+        <Tabs.Screen name="dashboard" options={{ href: null }} />
+        <Tabs.Screen name="explore_refactored" options={{ href: null }} />
+
       </Tabs>
-      <QuickNavigationMenu />
+      {Platform.OS === 'web' && showQuickNavigation && <QuickNavigationMenu />}
     </>
   );
 }

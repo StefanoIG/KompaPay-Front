@@ -1,77 +1,99 @@
-// Archivo índice para exportar todos los hooks de KompaPay
-// Permite importar todos los hooks desde un solo lugar
+// Kompapay/Front/src/hooks/index.ts
 
-// Configuración y tipos
-export * from './config';
-export * from './types';
+/**
+ * =============================================================================
+ * ARCHIVO DE BARRIL PARA HOOKS (HOOKS BARREL FILE)
+ * =============================================================================
+ * Este archivo es el punto de entrada único para todos los hooks de la aplicación.
+ * Centraliza las exportaciones para simplificar las importaciones en los componentes
+ * y otros hooks.
+ *
+ * La estructura es:
+ * 1. Re-exportación de toda la configuración y tipos globales.
+ * 2. Exportación de hooks de bajo nivel (Core, Datos, Colaboración).
+ * 3. Exportación de hooks de orquestación (combinan otros hooks).
+ * 4. Exportación de hooks de UI y utilidades.
+ * 5. Exportación de metadatos y constantes de la librería de hooks.
+ * =============================================================================
+ */
 
-// Hooks principales
-export { useAPI } from './useAPI';
-export { useAuth } from './useAuth';
-export { useExpense, useExpenses, useGroupDebts } from './useExpenses';
-export { useGroup, useGroups } from './useGroups';
-export { useConflicts, useOffline, useSync } from './useSync';
+// -----------------------------------------------------------------------------
+// SECCIÓN 1: RE-EXPORTACIÓN DE CONFIGURACIÓN Y TIPOS GLOBALES
+// -----------------------------------------------------------------------------
+// Exporta todo desde el archivo de configuración central:
+// - Interfaces (User, Gasto, Tablero, etc.)
+// - Enums (APIErrorType)
+// - Endpoints (ENDPOINTS)
+// - Constantes (API_CONFIG, APP_CONFIG, STORAGE_KEYS)
+export * from '../config/config';
 
-// Hooks de UI y validación
-export { useDashboardUI, useExploreUI } from './useUI';
-export { useUtilities } from './useUtilities';
-export { useAuthValidation, useFormValidation, usePasswordStrength } from './useValidation';
 
-// Hooks de utilidades existentes
-export {
-    useAudit, useCache, useNetworkStatus, useUtils
-} from './useUtils';
+// -----------------------------------------------------------------------------
+// SECCIÓN 2: EXPORTACIÓN DE HOOKS INDIVIDUALES POR DOMINIO
+// -----------------------------------------------------------------------------
 
-// Re-exportar tipos importantes para fácil acceso
-export type {
-    APIResponse, AuthState, CreateGastoRequest, CreateGrupoRequest, CreateUserRequest, DeudaResumen, ExpensesState, Gasto, GroupsState, Grupo, LoginRequest, PayDebtRequest, SyncConflicto, SyncState, User
-} from './types';
+// -- Core & Autenticación --
+export * from './useAPI';       // Hook base para interactuar con la API
+export * from './useAuth';      // Manejo de sesión, login, logout
 
-// Re-exportar configuraciones importantes
-export {
-    APIErrorType, API_CONFIG,
-    APP_CONFIG, BASE_URL,
-    ENDPOINTS, EXPENSE_CATEGORIES, STORAGE_KEYS
-} from './config';
+// -- Finanzas y Grupos --
+export * from './useExpenses';  // Lógica para gastos y deudas
+export * from './useGroups';    // Lógica para grupos
 
-// Constantes útiles para la aplicación
-export const HOOK_VERSION = '1.0.0';
-export const SUPPORTED_FEATURES = [
-  'authentication',
-  'groups_management',
-  'expenses_tracking',
-  'debt_calculation',
-  'offline_sync',
-  'conflict_resolution',
-  'audit_logging',
-  'data_caching',
-] as const;
+// -- Sincronización y Offline --
+export * from './useSync';      // Sincronización de datos con el servidor
+export * from './useOffline';   // Manejo de acciones offline
+export * from './useConflicts'; // Resolución de conflictos de datos
 
-// Configuraciones por defecto recomendadas
+// -- Colaboración (Tableros, Notas, Tareas) --
+export * from './useWebSocket'; // Conexión y manejo de eventos WebSocket
+export * from './useTableros';  // Lógica para los tableros tipo Trello
+export * from './useTareas';    // Lógica para las tareas dentro de los tableros
+export * from './useNotas';     // Lógica para las notas colaborativas
+
+// -- UI, Validación y Utilidades --
+export * from './useUI';        // Hooks específicos para la lógica de la UI
+export * from './useValidation';// Hooks para validación de formularios
+export * from './useUtils';     // Hooks con funciones de utilidad general
+export * from './useCache';     // Manejo de caché
+export * from './useNetworkStatus';// Detección del estado de la red
+
+
+// -----------------------------------------------------------------------------
+// SECCIÓN 3: EXPORTACIÓN DE HOOKS DE ORQUESTACIÓN
+// -----------------------------------------------------------------------------
+// Estos hooks combinan múltiples hooks individuales para proporcionar una
+// funcionalidad completa a una pantalla o componente complejo.
+// NOTA: La lógica de estos hooks debe estar en su propio archivo.
+
+export * from './useColaboracion';    // Orquesta WebSocket, Tableros y Notas
+export * from './useTableroCompleto'; // Orquesta Tareas y Estadísticas para un Tablero
+
+
+// -----------------------------------------------------------------------------
+// SECCIÓN 4: METADATOS Y CONSTANTES DE LA LIBRERÍA DE HOOKS
+// -----------------------------------------------------------------------------
+
+export const HOOK_INFO = {
+  name: 'KompaPay React Native Hooks',
+  version: '1.0.0',
+  description: 'Librería completa de hooks para la aplicación de gestión de gastos KompaPay',
+  author: 'KompaPay Development Team',
+  license: 'MIT',
+  features: [
+    'authentication',
+    'groups_management',
+    'expenses_tracking',
+    'debt_calculation',
+    'offline_sync',
+    'conflict_resolution',
+    'collaboration_features', // Trello, Notes
+  ],
+} as const;
+
 export const DEFAULT_PAGINATION = {
   page: 1,
   limit: 20,
 } as const;
 
 export const DEFAULT_CURRENCY = 'USD' as const;
-
-// Métodos de utilidad para configuración rápida
-export const createHookConfig = (options?: {
-  baseUrl?: string;
-  timeout?: number;
-  currency?: string;
-}) => ({
-  baseUrl: options?.baseUrl || BASE_URL,
-  timeout: options?.timeout || API_CONFIG.TIMEOUT,
-  currency: options?.currency || DEFAULT_CURRENCY,
-});
-
-// Información del paquete
-export const HOOK_INFO = {
-  name: 'KompaPay React Native Hooks',
-  version: HOOK_VERSION,
-  description: 'Complete hook library for KompaPay expense management app',
-  features: SUPPORTED_FEATURES,
-  author: 'KompaPay Development Team',
-  license: 'MIT',
-} as const;

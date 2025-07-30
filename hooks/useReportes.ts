@@ -1,148 +1,96 @@
-import { useState } from 'react';
-import { useAPI } from './useAPI';
-import { BASE_URL, ENDPOINTS } from './config';
+// src/hooks/useReportes.ts
+
+import { useState, useCallback } from 'react';
+import { useApi } from './useAPI'; // Usaremos nuestra versión mejorada
+import { ENDPOINTS, FiltrosReporte, ResumenReporte } from '../config/config';
 import { Platform } from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { STORAGE_KEYS } from './config';
 
-export interface ResumenReporte {
-  periodo: {
-    fecha_inicio: string;
-    fecha_fin: string;
-  };
-  grupos: GrupoReporte[];
-  resumen: {
-    total_pagado: number;
-    total_adeudado: number;
-    total_acreedor: number;
-    balance_general: number;
-    cantidad_grupos: number;
-    total_gastos_periodo: number;
-  };
-}
+// Importar librerías para descarga en móvil (ejemplo)
+// import * as FileSystem from 'expo-file-system';
+// import * as Sharing from 'expo-sharing';
 
-export interface GrupoReporte {
-  nombre: string;
-  total_gastos: number;
-  gastos: GastoReporte[];
-  pagado_por_usuario: number;
-  deuda_usuario: number;
-  acreencia_usuario: number;
-  balance_usuario: number;
-}
-
-export interface GastoReporte {
-  descripcion: string;
-  monto: string;
-  fecha: string;
-  pagador: string;
-  usuario_pago: boolean;
-  participacion_usuario: number;
-  usuario_pagado: number | boolean;
-  id_publico: string;
-}
-
-export interface FiltrosReporte {
-  grupo_id?: string;
-  fecha_inicio?: string;
-  fecha_fin?: string;
-}
-
+/**
+ * Hook para generar y gestionar reportes de la aplicación.
+ */
 export const useReportes = () => {
-  const { request } = useAPI();
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+    // Usamos useApi que ya maneja loading y error.
+    const { request, loading, error, clearError } = useApi();
 
-  const obtenerResumenBalance = async (filtros?: FiltrosReporte): Promise<ResumenReporte | null> => {
-    setLoading(true);
-    setError(null);
-    
-    try {
-      const params = new URLSearchParams();
-      if (filtros?.grupo_id) params.append('grupo_id', filtros.grupo_id);
-      if (filtros?.fecha_inicio) params.append('fecha_inicio', filtros.fecha_inicio);
-      if (filtros?.fecha_fin) params.append('fecha_fin', filtros.fecha_fin);
-      
-      const queryString = params.toString();
-      const endpoint = `${ENDPOINTS.REPORTS.BALANCE_SUMMARY}${queryString ? `?${queryString}` : ''}`;
-      
-      const response = await request<ResumenReporte>(endpoint, { method: 'GET' });
-      
-      if (response.success && response.data) {
-        return response.data;
-      } else {
-        setError('Error al obtener el resumen de balance');
-        return null;
-      }
-    } catch (err) {
-      setError('Error de conexión al obtener reportes');
-      console.error('Error en obtenerResumenBalance:', err);
-      return null;
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const descargarBalancePdf = async (filtros?: FiltrosReporte): Promise<boolean> => {
-    setLoading(true);
-    setError(null);
-    
-    try {
-      const params = new URLSearchParams();
-      if (filtros?.grupo_id) params.append('grupo_id', filtros.grupo_id);
-      if (filtros?.fecha_inicio) params.append('fecha_inicio', filtros.fecha_inicio);
-      if (filtros?.fecha_fin) params.append('fecha_fin', filtros.fecha_fin);
-      
-      const queryString = params.toString();
-      const fullUrl = `${BASE_URL}${ENDPOINTS.REPORTS.BALANCE_PDF}${queryString ? `?${queryString}` : ''}`;
-      
-      // Obtener token de autenticación
-      const token = await AsyncStorage.getItem(STORAGE_KEYS.AUTH_TOKEN);
-      
-      if (Platform.OS === 'web') {
-        // En web, hacemos fetch y creamos un blob para descargar
-        const response = await fetch(fullUrl, {
-          method: 'GET',
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Accept': 'application/pdf',
-          },
-        });
+    /**
+     * Obtiene el resumen de balance en formato JSON.
+     * @param filtros Opciones para filtrar el reporte (grupo, fechas).
+     * @returns Un objeto con el resumen del reporte o null si hay un error.
+     */
+    const obtenerResumenBalance = useCallback(async (filtros?: FiltrosReporte): Promise<ResumenReporte | null> => {
+        const params = new URLSearchParams(filtros as any).toString();
+        const endpoint = `${ENDPOINTS.REPORTS.BALANCE_SUMMARY}${params ? `?${params}` : ''}`;
         
-        if (!response.ok) {
-          throw new Error('Error al obtener el PDF');
+        // El hook useApi se encarga del estado de carga y error.
+        return await request<ResumenReporte>(endpoint);
+    }, [request]);
+
+    /**
+     * Descarga el reporte de balance en formato PDF.
+     * @param filtros Opciones para filtrar el reporte.
+     * @returns Un booleano indicando si la operación fue exitosa.
+     */
+    const descargarBalancePdf = useCallback(async (filtros?: FiltrosReporte): Promise<boolean> => {
+        const params = new URLSearchParams(filtros as any).toString();
+        const endpoint = `${ENDPOINTS.REPORTS.BALANCE_PDF}${params ? `?${params}` : ''}`;
+
+        // Llamamos a nuestro useApi pidiendo una respuesta de tipo 'blob'
+        const blob = await request<Blob>(endpoint, {}, 'blob');
+
+        if (!blob) {
+            return false; // El hook useApi ya habrá establecido el error.
         }
-        
-        const blob = await response.blob();
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `reporte-balance-${new Date().toISOString().split('T')[0]}.pdf`;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        window.URL.revokeObjectURL(url);
-        
-        return true;
-      } else {
-        // En React Native móvil, por ahora mostramos un mensaje
-        // En producción, aquí implementarías la descarga para móvil
-        setError('Descarga de PDF no implementada en móvil aún');
-        return false;
-      }
-    } catch (err) {
-      setError('Error al descargar el PDF');
-      console.error('Error en descargarBalancePdf:', err);
-      return false;
-    } finally {
-      setLoading(false);
-    }
-  };
 
-  return {
-    loading,
-    error,
-    obtenerResumenBalance,
-    descargarBalancePdf,
-  };
+        try {
+            if (Platform.OS === 'web') {
+                // Lógica para descargar el archivo en el navegador
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `reporte-balance-${new Date().toISOString().split('T')[0]}.pdf`;
+                document.body.appendChild(a);
+                a.click();
+                a.remove();
+                window.URL.revokeObjectURL(url);
+                return true;
+            } else {
+                // Lógica para descargar y compartir en móvil (iOS/Android)
+                // const uri = FileSystem.documentDirectory + 'reporte.pdf';
+                // const base64 = await blobToBase64(blob); // Necesitarías una función auxiliar
+                // await FileSystem.writeAsStringAsync(uri, base64, { encoding: FileSystem.EncodingType.Base64 });
+                // await Sharing.shareAsync(uri);
+                console.warn('La descarga de PDF en móvil necesita implementación nativa.');
+                return false;
+            }
+        } catch (downloadError) {
+            console.error("Error al procesar el PDF:", downloadError);
+            return false;
+        }
+    }, [request]);
+
+    return {
+        loading,
+        error,
+        clearError,
+        obtenerResumenBalance,
+        descargarBalancePdf,
+    };
 };
+
+// Función auxiliar para convertir Blob a Base64 en móvil (si se necesita)
+// function blobToBase64(blob: Blob): Promise<string> {
+//   return new Promise((resolve, reject) => {
+//     const reader = new FileReader();
+//     reader.onerror = reject;
+//     reader.onload = () => {
+//       const dataUrl = reader.result as string;
+//       const base64 = dataUrl.split(',')[1];
+//       resolve(base64);
+//     };
+//     reader.readAsDataURL(blob);
+//   });
+// }

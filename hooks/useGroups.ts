@@ -1,367 +1,160 @@
+// src/hooks/useGroups.ts
+
 import { useState, useCallback, useEffect } from 'react';
-import { useAPI } from './useAPI';
-import { ENDPOINTS } from './config';
+import { useApi } from './useAPI';
 import {
-  Grupo,
-  CreateGrupoRequest,
-  UpdateGrupoRequest,
-  JoinGroupRequest,
-  InviteMemberRequest,
-  GroupsState,
-  APIResponse,
-  UserSearchResult,
-  FindUserRequest,
-} from './types';
+    Grupo,
+    User,
+    CreateGrupoRequest,
+    UpdateGrupoRequest,
+    JoinGroupRequest,
+    InviteMemberRequest,
+    ENDPOINTS,
+} from '../config/config';
 
-// Hook para gestión de grupos
+// -----------------------------------------------------------------------------
+// Hook 1: useGroups - Para la lista de grupos del usuario
+// -----------------------------------------------------------------------------
+
+/**
+ * Gestiona la lista de grupos a los que pertenece un usuario.
+ * Se encarga de obtener la lista, crear nuevos grupos y unirse a existentes.
+ */
 export const useGroups = () => {
-  const { get, post, put, del } = useAPI();
-  const [groupsState, setGroupsState] = useState<GroupsState>({
-    groups: [],
-    currentGroup: null,
-    loading: false,
-    error: null,
-    success: false,
-  });
+    const { request, loading, error } = useApi();
+    const [groups, setGroups] = useState<Grupo[]>([]);
 
-  // Obtener todos los grupos del usuario
-  const fetchGroups = useCallback(async (): Promise<void> => {
-    try {
-      setGroupsState(prev => ({ ...prev, loading: true, error: null }));
+    const fetchGroups = useCallback(async () => {
+        const data = await request<Grupo[]>(ENDPOINTS.GROUPS.LIST);
+        if (data) {
+            setGroups(data);
+        }
+    }, [request]);
 
-      const response: APIResponse<Grupo[]> = await get(ENDPOINTS.USERS.MY_GROUPS);
+    // Cargar los grupos automáticamente la primera vez que se usa el hook
+    useEffect(() => {
+        fetchGroups();
+    }, [fetchGroups]);
 
-      if (response.success && response.data) {
-        setGroupsState(prev => ({
-          ...prev,
-          groups: response.data,
-          loading: false,
-          success: true,
-        }));
-      }
-    } catch (error) {
-      setGroupsState(prev => ({
-        ...prev,
-        loading: false,
-        error: error.message || 'Error al cargar grupos',
-      }));
-    }
-  }, [get]);
-
-  // Obtener detalles de un grupo específico
-  const fetchGroupDetails = useCallback(async (groupId: string): Promise<Grupo | null> => {
-    try {
-      setGroupsState(prev => ({ ...prev, loading: true, error: null }));
-
-      const response: APIResponse<Grupo> = await get(`${ENDPOINTS.GROUPS.SHOW}/${groupId}`);
-
-      if (response.success && response.data) {
-        const group = response.data;
-        
-        setGroupsState(prev => ({
-          ...prev,
-          currentGroup: group,
-          // Actualizar el grupo en la lista también
-          groups: prev.groups.map(g => g.id === groupId ? group : g),
-          loading: false,
-          success: true,
-        }));
-
-        return group;
-      }
-      return null;
-    } catch (error) {
-      setGroupsState(prev => ({
-        ...prev,
-        loading: false,
-        error: error.message || 'Error al cargar detalles del grupo',
-      }));
-      return null;
-    }
-  }, [get]);
-
-  // Crear nuevo grupo
-  const createGroup = useCallback(async (groupData: CreateGrupoRequest): Promise<Grupo | null> => {
-    try {
-      setGroupsState(prev => ({ ...prev, loading: true, error: null }));
-
-      const response: APIResponse<Grupo> = await post(ENDPOINTS.GROUPS.CREATE, groupData);
-
-      if (response.success && response.data) {
-        const newGroup = response.data;
-        
-        setGroupsState(prev => ({
-          ...prev,
-          groups: [...prev.groups, newGroup],
-          currentGroup: newGroup,
-          loading: false,
-          success: true,
-        }));
-
+    const createGroup = useCallback(async (groupData: CreateGrupoRequest) => {
+        const newGroup = await request<Grupo>(ENDPOINTS.GROUPS.CREATE, {
+            method: 'POST',
+            body: JSON.stringify(groupData),
+        });
+        if (newGroup) {
+            // Después de crear, recargamos la lista para tener el estado más reciente
+            await fetchGroups();
+        }
         return newGroup;
-      }
-      return null;
-    } catch (error) {
-      setGroupsState(prev => ({
-        ...prev,
-        loading: false,
-        error: error.message || 'Error al crear grupo',
-      }));
-      throw error;
-    }
-  }, [post]);
+    }, [request, fetchGroups]);
 
-  // Actualizar grupo
-  const updateGroup = useCallback(async (
-    groupId: string,
-    updates: UpdateGrupoRequest
-  ): Promise<Grupo | null> => {
-    try {
-      setGroupsState(prev => ({ ...prev, loading: true, error: null }));
-
-      const response: APIResponse<Grupo> = await put(
-        `${ENDPOINTS.GROUPS.UPDATE}/${groupId}`,
-        updates
-      );
-
-      if (response.success && response.data) {
-        const updatedGroup = response.data;
-        
-        setGroupsState(prev => ({
-          ...prev,
-          groups: prev.groups.map(g => g.id === groupId ? updatedGroup : g),
-          currentGroup: prev.currentGroup?.id === groupId ? updatedGroup : prev.currentGroup,
-          loading: false,
-          success: true,
-        }));
-
-        return updatedGroup;
-      }
-      return null;
-    } catch (error) {
-      setGroupsState(prev => ({
-        ...prev,
-        loading: false,
-        error: error.message || 'Error al actualizar grupo',
-      }));
-      throw error;
-    }
-  }, [put]);
-
-  // Eliminar grupo
-  const deleteGroup = useCallback(async (groupId: string): Promise<void> => {
-    try {
-      setGroupsState(prev => ({ ...prev, loading: true, error: null }));
-
-      const response: APIResponse = await del(`${ENDPOINTS.GROUPS.DELETE}/${groupId}`);
-
-      if (response.success) {
-        setGroupsState(prev => ({
-          ...prev,
-          groups: prev.groups.filter(g => g.id !== groupId),
-          currentGroup: prev.currentGroup?.id === groupId ? null : prev.currentGroup,
-          loading: false,
-          success: true,
-        }));
-      }
-    } catch (error) {
-      setGroupsState(prev => ({
-        ...prev,
-        loading: false,
-        error: error.message || 'Error al eliminar grupo',
-      }));
-      throw error;
-    }
-  }, [del]);
-
-  // Unirse a un grupo por ID público
-  const joinGroup = useCallback(async (joinData: JoinGroupRequest): Promise<Grupo | null> => {
-    try {
-      setGroupsState(prev => ({ ...prev, loading: true, error: null }));
-
-      const response: APIResponse<Grupo> = await post(ENDPOINTS.GROUPS.JOIN, joinData);
-
-      if (response.success && response.data) {
-        const joinedGroup = response.data;
-        
-        setGroupsState(prev => ({
-          ...prev,
-          groups: [...prev.groups, joinedGroup],
-          currentGroup: joinedGroup,
-          loading: false,
-          success: true,
-        }));
-
+    const joinGroup = useCallback(async (joinData: JoinGroupRequest) => {
+        const joinedGroup = await request<Grupo>(ENDPOINTS.GROUPS.JOIN, {
+            method: 'POST',
+            body: JSON.stringify(joinData),
+        });
+        if (joinedGroup) {
+            // Después de unirse, recargamos la lista
+            await fetchGroups();
+        }
         return joinedGroup;
-      }
-      return null;
-    } catch (error) {
-      setGroupsState(prev => ({
-        ...prev,
-        loading: false,
-        error: error.message || 'Error al unirse al grupo',
-      }));
-      throw error;
-    }
-  }, [post]);
-
-  // Invitar miembro al grupo
-  const inviteMember = useCallback(async (
-    groupId: string,
-    inviteData: InviteMemberRequest
-  ): Promise<void> => {
-    try {
-      setGroupsState(prev => ({ ...prev, loading: true, error: null }));
-
-      const endpoint = ENDPOINTS.GROUPS.INVITE_MEMBER.replace('{grupoId}', groupId);
-      const response: APIResponse = await post(endpoint, inviteData);
-
-      if (response.success) {
-        setGroupsState(prev => ({
-          ...prev,
-          loading: false,
-          success: true,
-        }));
-      }
-    } catch (error) {
-      setGroupsState(prev => ({
-        ...prev,
-        loading: false,
-        error: error.message || 'Error al enviar invitación',
-      }));
-      throw error;
-    }
-  }, [post]);
-
-  // Agregar miembro al grupo
-  const addMember = useCallback(async (
-    groupId: string,
-    userId: string
-  ): Promise<void> => {
-    try {
-      setGroupsState(prev => ({ ...prev, loading: true, error: null }));
-
-      const endpoint = ENDPOINTS.GROUPS.ADD_MEMBER.replace('{grupoId}', groupId);
-      const response: APIResponse = await post(endpoint, { user_id: userId });
-
-      if (response.success) {
-        // Recargar detalles del grupo para obtener la lista actualizada
-        await fetchGroupDetails(groupId);
-      }
-    } catch (error) {
-      setGroupsState(prev => ({
-        ...prev,
-        loading: false,
-        error: error.message || 'Error al agregar miembro',
-      }));
-      throw error;
-    }
-  }, [post, fetchGroupDetails]);
-
-  // Remover miembro del grupo
-  const removeMember = useCallback(async (
-    groupId: string,
-    userId: string
-  ): Promise<void> => {
-    try {
-      setGroupsState(prev => ({ ...prev, loading: true, error: null }));
-
-      const endpoint = ENDPOINTS.GROUPS.REMOVE_MEMBER
-        .replace('{grupoId}', groupId)
-        .replace('{usuarioId}', userId);
-      
-      const response: APIResponse = await del(endpoint);
-
-      if (response.success) {
-        // Recargar detalles del grupo para obtener la lista actualizada
-        await fetchGroupDetails(groupId);
-      }
-    } catch (error) {
-      setGroupsState(prev => ({
-        ...prev,
-        loading: false,
-        error: error.message || 'Error al remover miembro',
-      }));
-      throw error;
-    }
-  }, [del, fetchGroupDetails]);
-
-  // Buscar usuario por ID público
-  const findUserByPublicId = useCallback(async (
-    publicId: string
-  ): Promise<UserSearchResult | null> => {
-    try {
-      const response: APIResponse<UserSearchResult> = await post(
-        ENDPOINTS.USERS.FIND_BY_PUBLIC_ID,
-        { id_publico: publicId } as FindUserRequest,
-        false // Endpoint público
-      );
-
-      if (response.success && response.data) {
-        return response.data;
-      }
-      return null;
-    } catch (error) {
-      throw new Error(error.message || 'Usuario no encontrado');
-    }
-  }, [post]);
-
-  // Establecer grupo actual
-  const setCurrentGroup = useCallback((group: Grupo | null) => {
-    setGroupsState(prev => ({ ...prev, currentGroup: group }));
-  }, []);
-
-  // Limpiar errores y estados
-  const clearGroupsError = useCallback(() => {
-    setGroupsState(prev => ({ ...prev, error: null }));
-  }, []);
-
-  const clearGroupsSuccess = useCallback(() => {
-    setGroupsState(prev => ({ ...prev, success: false }));
-  }, []);
-
-  // Cargar grupos automáticamente al montar el hook
-  useEffect(() => {
-    fetchGroups();
-  }, [fetchGroups]);
-
-  return {
-    // Estado
-    ...groupsState,
+    }, [request, fetchGroups]);
     
-    // Acciones
-    fetchGroups,
-    fetchGroupDetails,
-    createGroup,
-    updateGroup,
-    deleteGroup,
-    joinGroup,
-    inviteMember,
-    addMember,
-    removeMember,
-    
-    // Utils
-    findUserByPublicId,
-    setCurrentGroup,
-    clearGroupsError,
-    clearGroupsSuccess,
-  };
+    // Función de utilidad que puede ser usada desde cualquier componente
+    const findUserByPublicId = useCallback(async (publicId: string) => {
+        return request<User>(ENDPOINTS.USERS.FIND_BY_PUBLIC_ID, {
+            method: 'POST',
+            body: JSON.stringify({ id_publico: publicId }),
+        });
+    }, [request]);
+
+    return {
+        groups,
+        loading,
+        error,
+        fetchGroups, // Se expone por si se necesita un refresh manual
+        createGroup,
+        joinGroup,
+        findUserByPublicId
+    };
 };
 
-// Hook específico para un grupo
-export const useGroup = (groupId: string | null) => {
-  const { fetchGroupDetails, currentGroup, loading, error } = useGroups();
-  
-  useEffect(() => {
-    if (groupId) {
-      fetchGroupDetails(groupId);
-    }
-  }, [groupId, fetchGroupDetails]);
+// -----------------------------------------------------------------------------
+// Hook 2: useGroupDetails - Para un solo grupo
+// -----------------------------------------------------------------------------
 
-  return {
-    group: currentGroup,
-    loading,
-    error,
-    refetch: () => groupId ? fetchGroupDetails(groupId) : Promise.resolve(null),
-  };
+/**
+ * Gestiona los detalles y miembros de un único grupo.
+ * @param groupId El ID del grupo a gestionar.
+ */
+export const useGroupDetails = (groupId: string) => {
+    const { request, loading, error } = useApi();
+    const [group, setGroup] = useState<Grupo | null>(null);
+
+    const fetchDetails = useCallback(async () => {
+        if (!groupId) return;
+        const data = await request<Grupo>(`${ENDPOINTS.GROUPS.SHOW}/${groupId}`);
+        if (data) {
+            setGroup(data);
+        }
+    }, [request, groupId]);
+
+    useEffect(() => {
+        fetchDetails();
+    }, [fetchDetails]);
+
+    const updateGroup = useCallback(async (updates: UpdateGrupoRequest) => {
+        const updatedGroup = await request<Grupo>(`${ENDPOINTS.GROUPS.UPDATE}/${groupId}`, {
+            method: 'PUT',
+            body: JSON.stringify(updates),
+        });
+        if (updatedGroup) {
+            setGroup(updatedGroup); // Actualiza el estado local
+        }
+        return updatedGroup;
+    }, [request, groupId]);
+    
+    const deleteGroup = useCallback(async () => {
+        const result = await request<null>(`${ENDPOINTS.GROUPS.DELETE}/${groupId}`, {
+            method: 'DELETE',
+        });
+        if (result !== null) {
+            setGroup(null);
+            return true;
+        }
+        return false;
+    }, [request, groupId]);
+
+    // --- Gestión de Miembros ---
+
+    const addMember = useCallback(async (userId: string) => {
+        const endpoint = ENDPOINTS.GROUPS.ADD_MEMBER.replace('{grupoId}', groupId);
+        await request(endpoint, { method: 'POST', body: JSON.stringify({ user_id: userId }) });
+        await fetchDetails(); // Recargar para ver al nuevo miembro
+    }, [request, groupId, fetchDetails]);
+    
+    const removeMember = useCallback(async (userId: string) => {
+        const endpoint = ENDPOINTS.GROUPS.REMOVE_MEMBER
+            .replace('{grupoId}', groupId)
+            .replace('{usuarioId}', userId);
+        await request(endpoint, { method: 'DELETE' });
+        await fetchDetails(); // Recargar para reflejar el cambio
+    }, [request, groupId, fetchDetails]);
+
+    const inviteMember = useCallback(async (inviteData: InviteMemberRequest) => {
+        const endpoint = ENDPOINTS.GROUPS.INVITE_MEMBER.replace('{grupoId}', groupId);
+        return request(endpoint, { method: 'POST', body: JSON.stringify(inviteData) });
+    }, [request, groupId]);
+
+    return {
+        group,
+        loading,
+        error,
+        refetch: fetchDetails,
+        updateGroup,
+        deleteGroup,
+        addMember,
+        removeMember,
+        inviteMember,
+    };
 };

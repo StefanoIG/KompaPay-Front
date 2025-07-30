@@ -1,16 +1,16 @@
 import { useCallback, useEffect, useState } from 'react';
-import { APP_CONFIG, ENDPOINTS } from './config';
+import { APP_CONFIG, ENDPOINTS } from '../config/config';
 import { storage } from './storage';
 import {
     APIResponse,
     AuditLog,
     Gasto
 } from './types';
-import { useAPI } from './useAPI';
+import { useApi } from './useAPI';
 
 // Hook para utilidades generales
 export const useUtils = () => {
-  const { get } = useAPI();
+  const { get } = useApi();
 
   // Formatear números como moneda
   const formatCurrency = useCallback((amount: number, currency: string = 'USD'): string => {

@@ -1,56 +1,47 @@
-import { WebApp } from '@/components/web/WebApp';
-import { useFonts } from 'expo-font';
-import { Stack } from 'expo-router';
-import * as SplashScreen from 'expo-splash-screen';
-import { StatusBar } from 'expo-status-bar';
-import React, { useEffect } from 'react';
-import { Platform } from 'react-native';
-import 'react-native-gesture-handler';
-import 'react-native-reanimated';
-import Toast from 'react-native-toast-message';
+// app/_layout.tsx
 
-// Prevent the splash screen from auto-hiding before asset loading is complete.
-SplashScreen.preventAutoHideAsync();
+import { AuthProvider, useAuthContext } from '@/providers/AuthProvider';
+import { Slot, useRouter, useSegments } from 'expo-router';
+import { useEffect } from 'react';
+import { ActivityIndicator, View } from 'react-native';
+import { WebSocketProvider } from '@/providers/WebSocketProvider'; // Importar el nuevo provider
 
-export default function RootLayout() {
-  const [loaded] = useFonts({
-    SpaceMono: require('../assets/fonts/SpaceMono-Regular.ttf'),
-  });
+const InitialLayout = () => {
+  const { isAuthenticated, isLoading } = useAuthContext();
+  const segments = useSegments();
+  const router = useRouter();
 
   useEffect(() => {
-    if (loaded) {
-      SplashScreen.hideAsync();
+    if (isLoading) return; // Esperar a que termine la carga inicial
+
+    const inAuthGroup = segments[0] === '(auth)';
+
+    if (isAuthenticated && inAuthGroup) {
+      // Si está autenticado y en el grupo de login/registro, redirigir a la app
+      router.replace('/(tabs)');
+    } else if (!isAuthenticated && !inAuthGroup) {
+      // Si no está autenticado y fuera del grupo de auth, redirigir al login
+      router.replace('/(auth)/login');
     }
-  }, [loaded]);
+  }, [isAuthenticated, isLoading, segments]);
 
-  if (!loaded) {
-    return null;
-  }
-
-  // Si es web, usar el layout de web con sidebar
-  if (Platform.OS === 'web') {
+  if (isLoading) {
     return (
-      <>
-        <WebApp />
-        <StatusBar style="auto" />
-        <Toast />
-      </>
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+        <ActivityIndicator size="large" />
+      </View>
     );
   }
 
-  // Si es móvil, usar el layout normal con tabs
+  return <Slot />;
+};
+
+export default function RootLayout() {
   return (
-    <>
-      <Stack>
-        <Stack.Screen name="index" options={{ headerShown: false }} />
-        <Stack.Screen name="(auth)/index" options={{ headerShown: false }} />
-        <Stack.Screen name="(auth)/login" options={{ headerShown: false }} />
-        <Stack.Screen name="(auth)/register" options={{ headerShown: false }} />
-        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        <Stack.Screen name="+not-found" />
-      </Stack>
-      <StatusBar style="auto" />
-      <Toast />
-    </>
+    <AuthProvider>
+      <WebSocketProvider> {/* Envolver aquí */}
+        <InitialLayout />
+      </WebSocketProvider>
+    </AuthProvider>
   );
 }
