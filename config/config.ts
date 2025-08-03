@@ -102,8 +102,13 @@ export const ENDPOINTS = {
     MY_EXPENSES: '/user/gastos',
     MY_DEBTS: '/user/deudas',
     MARK_PAID: '/gastos/{id}/pagar',
+    PAY_DEBT: '/gastos/pay-debt',
     RESOLVE_CONFLICT: '/gastos/{id}/resolver',
     HISTORY: '/gastos/{gastoId}/history',
+  },
+  AUDIT: {
+    USER_LOGS: '/audit/user',
+    GROUP_LOGS: '/audit/groups/{grupoId}',
   },
   TABLEROS: { // Funcionalidad tipo Trello, anidada en grupos
     LIST: '/grupos/{grupoId}/tableros',
@@ -112,6 +117,18 @@ export const ENDPOINTS = {
     UPDATE: '/grupos/{grupoId}/tableros/{tableroId}',
     DELETE: '/grupos/{grupoId}/tableros/{tableroId}',
     REORDER: '/grupos/{grupoId}/tableros/reorder',
+  },
+  NOTAS: { // Endpoints para notas colaborativas
+    LIST: '/grupos/{grupoId}/notas',
+    CREATE: '/grupos/{grupoId}/notas',
+    SHOW: '/grupos/{grupoId}/notas/{notaId}',
+    UPDATE: '/notas/{notaId}',
+    DELETE: '/notas/{notaId}',
+    LOCK: '/notas/{notaId}/lock',
+    UNLOCK: '/notas/{notaId}/unlock',
+  },
+  TYPING: { // Endpoints para eventos de typing
+    SEND: '/api/typing-events',
   },
   SYNC: {
     PULL: '/sync/pull',
@@ -297,10 +314,20 @@ export interface Gasto {
     grupo_id: string;
     descripcion: string;
     monto_total: number;
-    pagado_por: string;
+    monto: number; // Alias para compatibilidad
+    categoria?: string;
     fecha: string;
+    pagado_por: string;
+    pagador: User;
+    participantes: Participante[];
     grupo?: Grupo;
-    // ...otros campos de tu modelo Gasto
+}
+
+export interface Participante {
+    id: string;
+    usuario_id: string;
+    usuario?: User;
+    monto_proporcional: number;
 }
 
 export interface Deuda {
@@ -329,9 +356,9 @@ export interface CreateGastoRequest {
     grupo_id: string;
     descripcion: string;
     monto_total: number;
+    categoria?: string;
     pagado_por: string;
     participantes: { id_usuario: string; monto_proporcional: number }[];
-    // ...otros campos necesarios
 }
 
 export interface UpdateGastoRequest extends Partial<CreateGastoRequest> {}
@@ -347,6 +374,31 @@ export interface GroupExpensesParams {
     categoria?: string;
     pagador_id?: string;
     participante_id?: string;
+}
+
+// Interfaces para validación de datos
+export interface ExpenseValidationData {
+    descripcion: string;
+    monto: number;
+    categoria: string;
+    participantes: string[];
+}
+
+export interface ValidationResult {
+    isValid: boolean;
+    errors: string[];
+}
+
+// Interface para cálculo de divisiones
+export interface SplitCalculation {
+    amountPerPerson: number;
+    remainder: number;
+}
+
+// Interface para cálculo de deudas
+export interface DebtCalculation {
+    owes: { to: string; amount: number }[];
+    owedBy: { from: string; amount: number }[];
 }
 
 export interface FiltrosReporte {
@@ -432,6 +484,30 @@ export interface AuditLog {
   entity_id: string;
   details?: Record<string, any>; // Para guardar datos adicionales, como el nombre del grupo creado
   created_at: string;
+}
+
+// --- Interfaces para eventos de typing ---
+
+export interface TypingEventRequest {
+  grupo_id: string;
+  nota_id: string;
+  event_type: 'user-typing' | 'user-stopped-typing';
+  user_name: string;
+}
+
+// --- Interfaces para manejo de conexión y estado ---
+
+export interface ConnectionStatus {
+  isOnline: boolean;
+  lastSync?: string;
+  pendingActions: number;
+}
+
+export interface SyncStatus {
+  isSyncing: boolean;
+  lastSyncTime?: string;
+  hasConflicts: boolean;
+  conflictCount: number;
 }
 
 

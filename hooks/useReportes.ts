@@ -39,7 +39,7 @@ export const useReportes = () => {
         const endpoint = `${ENDPOINTS.REPORTS.BALANCE_PDF}${params ? `?${params}` : ''}`;
 
         // Llamamos a nuestro useApi pidiendo una respuesta de tipo 'blob'
-        const blob = await request<Blob>(endpoint, {}, 'blob');
+        const blob = await request<Blob>(endpoint, {});
 
         if (!blob) {
             return false; // El hook useApi ya habrá establecido el error.

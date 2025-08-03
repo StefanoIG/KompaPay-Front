@@ -4,7 +4,11 @@ import { storage } from './storage';
 import {
     APIResponse,
     AuditLog,
-    Gasto
+    Gasto,
+    ExpenseValidationData,
+    ValidationResult,
+    SplitCalculation,
+    DebtCalculation
 } from '@/config/config';
 import { useApi } from './useAPI';
 
@@ -74,7 +78,7 @@ export const useUtils = () => {
   const calculateEqualSplit = useCallback((
     totalAmount: number,
     participantCount: number
-  ): { amountPerPerson: number; remainder: number } => {
+  ): SplitCalculation => {
     const amountPerPerson = Math.floor((totalAmount * 100) / participantCount) / 100;
     const remainder = totalAmount - (amountPerPerson * participantCount);
     
@@ -85,20 +89,26 @@ export const useUtils = () => {
   }, []);
 
   // Calcular deudas entre usuarios
-  const calculateDebts = useCallback((expenses: Gasto[], userId: string): {
-    owes: { to: string; amount: number }[];
-    owedBy: { from: string; amount: number }[];
-  } => {
+  const calculateDebts = useCallback((expenses: Gasto[], userId: string): DebtCalculation => {
     const debts = new Map<string, number>();
 
     expenses.forEach(expense => {
-      if (expense.participantes) {
-        const sharePerPerson = expense.monto / expense.participantes.length;
+      if (expense.participantes && expense.participantes.length > 0) {
+        // Usar monto_total si está disponible, si no usar monto
+        const totalAmount = expense.monto_total || expense.monto || 0;
         
         expense.participantes.forEach(participant => {
-          if (participant.usuario_id !== expense.pagador.id) {
-            const key = `${participant.usuario_id}-${expense.pagador.id}`;
-            debts.set(key, (debts.get(key) || 0) + sharePerPerson);
+          // Verificar que el participante no sea quien pagó
+          const participantUserId = participant.usuario_id || participant.usuario?.id;
+          const payerId = expense.pagador?.id || expense.pagado_por;
+          
+          if (participantUserId && participantUserId !== payerId) {
+            // Usar monto_proporcional si está disponible, si no dividir equitativamente
+            const shareAmount = participant.monto_proporcional || 
+                               (totalAmount / expense.participantes.length);
+            
+            const key = `${participantUserId}-${payerId}`;
+            debts.set(key, (debts.get(key) || 0) + shareAmount);
           }
         });
       }
@@ -111,9 +121,9 @@ export const useUtils = () => {
       const [debtorId, creditorId] = key.split('-');
       
       if (debtorId === userId) {
-        owes.push({ to: creditorId, amount });
+        owes.push({ to: creditorId, amount: Math.round(amount * 100) / 100 });
       } else if (creditorId === userId) {
-        owedBy.push({ from: debtorId, amount });
+        owedBy.push({ from: debtorId, amount: Math.round(amount * 100) / 100 });
       }
     });
 
@@ -121,12 +131,7 @@ export const useUtils = () => {
   }, []);
 
   // Validar datos de gasto
-  const validateExpenseData = useCallback((data: {
-    descripcion: string;
-    monto: number;
-    categoria: string;
-    participantes: string[];
-  }): { isValid: boolean; errors: string[] } => {
+  const validateExpenseData = useCallback((data: ExpenseValidationData): ValidationResult => {
     const errors: string[] = [];
 
     if (!data.descripcion?.trim()) {
@@ -157,11 +162,27 @@ export const useUtils = () => {
     formatDateTime,
     isValidEmail,
     generateUniqueId,
-    useDebounce,
     calculateEqualSplit,
     calculateDebts,
     validateExpenseData,
   };
+};
+
+// Hook para debounce (separado del hook principal)
+export const useDebounce = (value: string, delay: number) => {
+  const [debouncedValue, setDebouncedValue] = useState(value);
+
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedValue(value);
+    }, delay);
+
+    return () => {
+      clearTimeout(handler);
+    };
+  }, [value, delay]);
+
+  return debouncedValue;
 };
 
 // Hook para gestión de caché local
@@ -262,7 +283,7 @@ export const useCache = () => {
 
 // Hook para logs de auditoría
 export const useAudit = () => {
-  const { get } = useAPI();
+  const { get } = useApi();
   const [logs, setLogs] = useState<AuditLog[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -273,17 +294,18 @@ export const useAudit = () => {
       setLoading(true);
       setError(null);
 
-      const response: APIResponse<{
+      const response = await get<{
         data: AuditLog[];
         current_page: number;
         last_page: number;
-      }> = await get(`${ENDPOINTS.AUDIT.USER_LOGS}?page=${page}`);
+      }>(`${ENDPOINTS.AUDIT.USER_LOGS}?page=${page}`);
 
-      if (response.success && response.data) {
-        setLogs(page === 1 ? response.data.data : [...logs, ...response.data.data]);
+      if (response) {
+        setLogs(page === 1 ? response.data : [...logs, ...response.data]);
       }
     } catch (err) {
-      setError(err.message || 'Error al cargar logs');
+      const errorMessage = err instanceof Error ? err.message : 'Error al cargar logs';
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -296,18 +318,19 @@ export const useAudit = () => {
   ): Promise<AuditLog[]> => {
     try {
       const endpoint = ENDPOINTS.AUDIT.GROUP_LOGS.replace('{grupoId}', groupId);
-      const response: APIResponse<{
+      const response = await get<{
         data: AuditLog[];
         current_page: number;
         last_page: number;
-      }> = await get(`${endpoint}?page=${page}`);
+      }>(`${endpoint}?page=${page}`);
 
-      if (response.success && response.data) {
-        return response.data.data;
+      if (response) {
+        return response.data;
       }
       return [];
     } catch (err) {
-      throw new Error(err.message || 'Error al cargar logs del grupo');
+      const errorMessage = err instanceof Error ? err.message : 'Error al cargar logs del grupo';
+      throw new Error(errorMessage);
     }
   }, [get]);
 
@@ -317,31 +340,5 @@ export const useAudit = () => {
     error,
     fetchUserLogs,
     fetchGroupLogs,
-  };
-};
-
-// Hook para conectividad de red
-export const useNetworkStatus = () => {
-  const [isConnected, setIsConnected] = useState(true);
-  const [connectionType, setConnectionType] = useState<string>('wifi');
-
-  // En React Native se usaría NetInfo, aquí simulamos
-  useEffect(() => {
-    const checkConnection = () => {
-      setIsConnected(navigator.onLine);
-    };
-
-    window.addEventListener('online', checkConnection);
-    window.addEventListener('offline', checkConnection);
-
-    return () => {
-      window.removeEventListener('online', checkConnection);
-      window.removeEventListener('offline', checkConnection);
-    };
-  }, []);
-
-  return {
-    isConnected,
-    connectionType,
   };
 };

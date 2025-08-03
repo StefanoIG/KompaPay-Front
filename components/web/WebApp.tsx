@@ -1,4 +1,4 @@
-import LoginNew from '@/app/(auth)/login_new';
+import LoginNew from '@/app/(auth)/login';
 import { WebLayout } from '@/components/layout/WebLayout';
 import { useAuth } from '@/hooks/useAuth';
 import { useWebNavigation } from '@/hooks/useWebNavigation';

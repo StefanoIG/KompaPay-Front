@@ -1,7 +1,12 @@
 // src/providers/WebSocketProvider.tsx
 
 import React, { createContext, useContext, useEffect, useRef, useState, useCallback } from 'react';
-import Pusher from 'pusher-js/react-native';
+import {
+    Pusher,
+    PusherMember,
+    PusherChannel,
+    PusherEvent,
+} from '@pusher/pusher-websocket-react-native';
 import { useAuthContext } from './AuthProvider';
 import { PUSHER_CONFIG, WebSocketCallbacks } from '@/config/config';
 
@@ -26,13 +31,12 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     const isInitializedRef = useRef(false);
 
     // Función para limpiar la conexión
-    const cleanupConnection = useCallback(() => {
+    const cleanupConnection = useCallback(async () => {
         if (pusherRef.current) {
             // Desconectar todos los canales primero
-            channelsRef.current.forEach((channel, channelName) => {
+            channelsRef.current.forEach(async (channel, channelName) => {
                 try {
-                    channel.unbind_all();
-                    pusherRef.current?.unsubscribe(channelName);
+                    await pusherRef.current?.unsubscribe({ channelName });
                 } catch (error) {
                     console.warn('Error unsubscribing from channel:', channelName, error);
                 }
@@ -41,7 +45,7 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
             // Desconectar pusher
             try {
-                pusherRef.current.disconnect();
+                await pusherRef.current.disconnect();
             } catch (error) {
                 console.warn('Error disconnecting pusher:', error);
             }
@@ -59,106 +63,68 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     }, []);
 
     // Función para inicializar la conexión
-    const initializeConnection = useCallback(() => {
+    const initializeConnection = useCallback(async () => {
         if (!isAuthenticated || !token || pusherRef.current) {
             return;
         }
 
         try {
-            const pusher = new Pusher(PUSHER_CONFIG.key, {
+            const pusher = Pusher.getInstance();
+            
+            await pusher.init({
+                apiKey: PUSHER_CONFIG.key,
                 cluster: PUSHER_CONFIG.cluster,
-                authEndpoint: PUSHER_CONFIG.authEndpoint,
-                auth: { 
-                    headers: { 
-                        Authorization: `Bearer ${token}`,
-                        'Content-Type': 'application/json'
-                    } 
-                },
-                enabledTransports: ['ws', 'wss'],
-                // Configuraciones adicionales para estabilidad
-                activityTimeout: 30000,
-                pongTimeout: 6000,
-                unavailableTimeout: 10000,
-                // Configuración de autenticación más robusta
-                authorizer: (channel, options) => {
-                    return {
-                        authorize: (socketId, callback) => {
-                            fetch(PUSHER_CONFIG.authEndpoint, {
-                                method: 'POST',
-                                headers: {
-                                    'Authorization': `Bearer ${token}`,
-                                    'Content-Type': 'application/json',
-                                    'Accept': 'application/json',
-                                },
-                                body: JSON.stringify({
-                                    socket_id: socketId,
-                                    channel_name: channel.name,
-                                }),
-                            })
-                            .then(response => {
-                                if (!response.ok) {
-                                    throw new Error(`HTTP ${response.status}`);
-                                }
-                                return response.json();
-                            })
-                            .then(data => {
-                                callback(null, data);
-                            })
-                            .catch(error => {
-                                console.error('Auth error:', error);
-                                callback(error, null);
-                            });
+                // Para canales privados, configuramos la autenticación
+                onAuthorizer: async (channelName: string, socketId: string) => {
+                    try {
+                        const response = await fetch(PUSHER_CONFIG.authEndpoint, {
+                            method: 'POST',
+                            headers: {
+                                'Authorization': `Bearer ${token}`,
+                                'Content-Type': 'application/json',
+                                'Accept': 'application/json',
+                            },
+                            body: JSON.stringify({
+                                socket_id: socketId,
+                                channel_name: channelName,
+                            }),
+                        });
+
+                        if (!response.ok) {
+                            throw new Error(`HTTP ${response.status}`);
                         }
-                    };
-                }
+
+                        return await response.json();
+                    } catch (error) {
+                        console.error('Auth error:', error);
+                        throw error;
+                    }
+                },
+                onConnectionStateChange: (currentState: string, previousState: string) => {
+                    console.log(`Pusher connection state changed from ${previousState} to ${currentState}`);
+                    setIsConnected(currentState === 'CONNECTED');
+                    
+                    if (currentState === 'CONNECTED') {
+                        // Limpiar timeout de reconexión si existe
+                        if (reconnectTimeoutRef.current) {
+                            clearTimeout(reconnectTimeoutRef.current);
+                            reconnectTimeoutRef.current = null;
+                        }
+                    }
+                },
+                onError: (message: string, code: Number, error: any) => {
+                    console.error('Pusher Error:', { message, code, error });
+                    setIsConnected(false);
+                    
+                    // Si es un error de autenticación, limpiar todo
+                    if (code === 4001 || code === 4004) {
+                        console.log('Authentication error, cleaning up connection');
+                        cleanupConnection();
+                    }
+                },
             });
 
-            // Event listeners para el estado de la conexión
-            pusher.connection.bind('connected', () => {
-                console.log('Pusher connected');
-                setIsConnected(true);
-                // Limpiar timeout de reconexión si existe
-                if (reconnectTimeoutRef.current) {
-                    clearTimeout(reconnectTimeoutRef.current);
-                    reconnectTimeoutRef.current = null;
-                }
-            });
-
-            pusher.connection.bind('disconnected', () => {
-                console.log('Pusher disconnected');
-                setIsConnected(false);
-            });
-
-            pusher.connection.bind('unavailable', () => {
-                console.log('Pusher unavailable');
-                setIsConnected(false);
-            });
-
-            pusher.connection.bind('failed', () => {
-                console.log('Pusher connection failed');
-                setIsConnected(false);
-            });
-
-            pusher.connection.bind('error', (err) => {
-                console.error('Pusher Error:', err);
-                setIsConnected(false);
-                
-                // Si es un error de autenticación, limpiar todo
-                if (err?.error?.code === 4001 || err?.error?.code === 4004) {
-                    console.log('Authentication error, cleaning up connection');
-                    cleanupConnection();
-                }
-            });
-
-            // Listener para errores de autenticación en canales
-            pusher.bind('pusher:subscription_error', (err) => {
-                console.error('Subscription error:', err);
-                if (err?.status === 401 || err?.status === 403) {
-                    console.log('Channel auth error, cleaning up connection');
-                    cleanupConnection();
-                }
-            });
-
+            await pusher.connect();
             pusherRef.current = pusher;
             
         } catch (error) {
@@ -194,7 +160,7 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ chi
             // Solo reconectar si no hay conexión activa
             reconnectTimeoutRef.current = setTimeout(() => {
                 initializeConnection();
-            }, 1000); // Pequeño delay para evitar reconexiones rápidas
+            }, 1000) as unknown as NodeJS.Timeout; // Pequeño delay para evitar reconexiones rápidas
         }
     }, [token, isAuthenticated, cleanupConnection, initializeConnection]);
 
@@ -210,16 +176,20 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
         if (!channel) {
             try {
-                channel = pusher.subscribe(channelName);
-                channelsRef.current.set(channelName, channel);
-                
-                // Listener para errores de suscripción
-                channel.bind('pusher:subscription_error', (err) => {
-                    console.error(`Subscription error for ${channelName}:`, err);
-                });
-
-                channel.bind('pusher:subscription_succeeded', () => {
-                    console.log(`Successfully subscribed to ${channelName}`);
+                // Subscripción usando la nueva API
+                pusher.subscribe({
+                    channelName,
+                    onSubscriptionSucceeded: (data: any) => {
+                        console.log(`Successfully subscribed to ${channelName}`, data);
+                        channelsRef.current.set(channelName, true); // Marcar como suscrito
+                    },
+                    onSubscriptionError: (channelName: string, message: string, error: any) => {
+                        console.error(`Subscription error for ${channelName}:`, message, error);
+                    },
+                    onEvent: (event: PusherEvent) => {
+                        // Manejar eventos aquí
+                        handleWebSocketEvent(event, callbacks);
+                    },
                 });
                 
             } catch (error) {
@@ -227,31 +197,12 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ chi
                 return () => {};
             }
         }
-        
-        // Limpiar bindings anteriores para evitar duplicados
-        try {
-            channel.unbind_all();
-        } catch (error) {
-            console.warn('Error unbinding previous events:', error);
-        }
-        
-        // Bind de los nuevos callbacks
-        Object.entries(callbacks).forEach(([eventName, callback]) => {
-            try {
-                // Convierte 'onNotaCreated' a 'nota.created'
-                const pusherEvent = eventName.replace('on', '').replace(/([A-Z])/g, '.$1').toLowerCase().substring(1);
-                channel.bind(pusherEvent, callback);
-            } catch (error) {
-                console.error(`Error binding event ${eventName}:`, error);
-            }
-        });
 
         // Devuelve una función de limpieza
         return () => {
             try {
-                if (channel && channelsRef.current.has(channelName)) {
-                    channel.unbind_all();
-                    pusher.unsubscribe(channelName);
+                if (channelsRef.current.has(channelName)) {
+                    pusher.unsubscribe({ channelName });
                     channelsRef.current.delete(channelName);
                 }
             } catch (error) {
@@ -259,6 +210,63 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ chi
             }
         };
     }, [isConnected]);
+
+    // Función para manejar eventos de WebSocket
+    const handleWebSocketEvent = useCallback((event: PusherEvent, callbacks: WebSocketCallbacks) => {
+        try {
+            const eventData = typeof event.data === 'string' ? JSON.parse(event.data) : event.data;
+            
+            // Mapear nombres de eventos de Pusher a callbacks
+            switch (event.eventName) {
+                case 'tablero.created':
+                    callbacks.onTableroCreated?.(eventData);
+                    break;
+                case 'tablero.updated':
+                    callbacks.onTableroUpdated?.(eventData);
+                    break;
+                case 'tablero.deleted':
+                    callbacks.onTableroDeleted?.(eventData);
+                    break;
+                case 'tarea.created':
+                    callbacks.onTareaCreated?.(eventData);
+                    break;
+                case 'tarea.updated':
+                    callbacks.onTareaUpdated?.(eventData);
+                    break;
+                case 'tarea.deleted':
+                    callbacks.onTareaDeleted?.(eventData);
+                    break;
+                case 'tarea.moved':
+                    callbacks.onTareaMoved?.(eventData);
+                    break;
+                case 'nota.created':
+                    callbacks.onNotaCreated?.(eventData);
+                    break;
+                case 'nota.updated':
+                    callbacks.onNotaUpdated?.(eventData);
+                    break;
+                case 'nota.deleted':
+                    callbacks.onNotaDeleted?.(eventData);
+                    break;
+                case 'nota.locked':
+                    callbacks.onNotaLocked?.(eventData);
+                    break;
+                case 'nota.unlocked':
+                    callbacks.onNotaUnlocked?.(eventData);
+                    break;
+                case 'user.typing':
+                    callbacks.onUserTyping?.(eventData);
+                    break;
+                case 'user.stopped-typing':
+                    callbacks.onUserStoppedTyping?.(eventData);
+                    break;
+                default:
+                    console.log('Unhandled event:', event.eventName, eventData);
+            }
+        } catch (error) {
+            console.error('Error handling WebSocket event:', error);
+        }
+    }, []);
     
     const unsubscribeFromGroup = useCallback((groupId: string) => {
         const pusher = pusherRef.current;
@@ -266,11 +274,7 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         
         if (pusher && channelsRef.current.has(channelName)) {
             try {
-                const channel = channelsRef.current.get(channelName);
-                if (channel) {
-                    channel.unbind_all();
-                }
-                pusher.unsubscribe(channelName);
+                pusher.unsubscribe({ channelName });
                 channelsRef.current.delete(channelName);
             } catch (error) {
                 console.warn('Error unsubscribing from group:', error);

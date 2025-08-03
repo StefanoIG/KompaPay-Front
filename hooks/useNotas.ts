@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { useApi } from './useAPI';
-import { useWebSocket } from '@/providers/WebSocketProvider'; // Corregido: Importar desde el provider
+import { useWebSocket } from '@/providers/WebSocketProvider';
 import {
     Nota,
     CreateNotaRequest,
@@ -9,22 +9,23 @@ import {
     ENDPOINTS,
     User,
 } from '@/config/config';
-import { useAuthContext } from '@/providers/AuthProvider'; // Necesario para obtener el nombre de usuario
+import { useAuthContext } from '@/providers/AuthProvider';
 
 /**
  * Hook para la gestión integral de notas colaborativas de un grupo.
  */
 export const useNotas = (groupId: string) => {
     const { request, loading: apiLoading, error: apiError } = useApi();
-    const { user } = useAuthContext(); // Obtener el usuario actual del contexto
-    const { subscribeToGroup, pusher } = useWebSocket(); // Obtener el pusher y la función de suscripción
+    const { user } = useAuthContext();
+    const { subscribeToGroup, pusher } = useWebSocket();
 
     const [notas, setNotas] = useState<Nota[]>([]);
     const [typingUsers, setTypingUsers] = useState<Map<string, TypingUser[]>>(new Map());
     const typingTimeoutRef = useRef<Map<string, NodeJS.Timeout>>(new Map());
 
     const loadNotas = useCallback(async () => {
-        const endpoint = ENDPOINTS.TABLEROS.LIST.replace('{grupoId}', groupId) + '/notas'; // Asumiendo endpoint
+        // Asumiendo que el endpoint para notas es similar al de tableros
+        const endpoint = ENDPOINTS.TABLEROS.LIST.replace('{grupoId}', groupId) + '/notas';
         const data = await request<Nota[]>(endpoint);
         if (data) {
             setNotas(data);
@@ -41,7 +42,6 @@ export const useNotas = (groupId: string) => {
     useEffect(() => {
         if (!groupId) return;
 
-        // La función subscribeToGroup ahora devuelve la función de limpieza directamente.
         const cleanup = subscribeToGroup(groupId, {
             onNotaCreated: ({ nota }) => setNotas(prev => [nota, ...prev]),
             onNotaUpdated: ({ nota: updatedNota }) =>
@@ -84,65 +84,81 @@ export const useNotas = (groupId: string) => {
         });
 
         return () => {
-            cleanup(); // Llama a la función de limpieza devuelta por subscribeToGroup
+            cleanup();
             typingTimeoutRef.current.forEach(clearTimeout);
         };
     }, [groupId, subscribeToGroup]);
 
     // --- Funciones CRUD ---
 
-    const createNota = (data: CreateNotaRequest) => {
-         const endpoint = ENDPOINTS.TABLEROS.LIST.replace('{grupoId}', groupId) + '/notas';
+    const createNota = useCallback(async (data: CreateNotaRequest) => {
+        const endpoint = ENDPOINTS.TABLEROS.LIST.replace('{grupoId}', groupId) + '/notas';
         return request<Nota>(endpoint, {
             method: 'POST',
             body: JSON.stringify(data),
         });
-    };
+    }, [groupId, request]);
 
-    const updateNota = (notaId: string, data: UpdateNotaRequest) => {
+    const updateNota = useCallback(async (notaId: string, data: UpdateNotaRequest) => {
         return request<Nota>(`/notas/${notaId}`, {
             method: 'PUT',
             body: JSON.stringify(data),
         });
-    };
+    }, [request]);
     
     // --- Lógica de "Está Escribiendo" ---
     
-    const sendClientEvent = (eventName: string, notaId: string) => {
-        const channelName = `private-grupo.${groupId}`;
-        const channel = pusher?.channel(channelName);
-        if (channel && user) {
-            channel.trigger(eventName, {
-                nota_id: notaId,
-                user_name: user.name, // Usar el nombre del usuario del contexto
+    // Nota: Para eventos de cliente (typing), necesitaríamos implementar 
+    // un endpoint específico en el servidor o usar presence channels
+    // Por ahora, comentamos esta funcionalidad hasta implementar la solución correcta
+    
+    const sendTypingEvent = useCallback(async (eventName: string, notaId: string) => {
+        if (!user) return;
+        
+        // En lugar de client events, enviar al servidor que rebroadcast
+        try {
+            await request('/api/typing-events', {
+                method: 'POST',
+                body: JSON.stringify({
+                    grupo_id: groupId,
+                    nota_id: notaId,
+                    event_type: eventName,
+                    user_name: user.name,
+                }),
             });
+        } catch (error) {
+            console.error('Error sending typing event:', error);
         }
-    };
+    }, [groupId, user, request]);
 
     const startTyping = useCallback((notaId: string) => {
         if (!user) return;
-        sendClientEvent('client-user-typing', notaId);
+        sendTypingEvent('user-typing', notaId);
         
         const timeoutKey = `${notaId}-${user.name}`;
         if (typingTimeoutRef.current.has(timeoutKey)) {
-            clearTimeout(typingTimeoutRef.current.get(timeoutKey));
+            const existingTimeout = typingTimeoutRef.current.get(timeoutKey);
+            if (existingTimeout) clearTimeout(existingTimeout);
         }
 
-        const newTimeout = setTimeout(() => stopTyping(notaId), 3000);
+        const newTimeout = setTimeout(() => stopTyping(notaId), 3000) as unknown as NodeJS.Timeout;
         typingTimeoutRef.current.set(timeoutKey, newTimeout);
 
-    }, [groupId, pusher, user]);
+    }, [user, sendTypingEvent]);
 
     const stopTyping = useCallback((notaId: string) => {
         if (!user) return;
-        sendClientEvent('client-user-stopped-typing', notaId);
+        sendTypingEvent('user-stopped-typing', notaId);
 
         const timeoutKey = `${notaId}-${user.name}`;
-         if (typingTimeoutRef.current.has(timeoutKey)) {
-            clearTimeout(typingTimeoutRef.current.get(timeoutKey));
-            typingTimeoutRef.current.delete(timeoutKey);
+        if (typingTimeoutRef.current.has(timeoutKey)) {
+            const existingTimeout = typingTimeoutRef.current.get(timeoutKey);
+            if (existingTimeout) {
+                clearTimeout(existingTimeout);
+                typingTimeoutRef.current.delete(timeoutKey);
+            }
         }
-    }, [groupId, pusher, user]);
+    }, [user, sendTypingEvent]);
 
 
     return {
