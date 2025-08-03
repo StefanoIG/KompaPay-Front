@@ -1,10 +1,11 @@
 // src/hooks/useApi.ts
+
 import { useState, useCallback } from 'react';
-import { useAuth } from './useAuth'; // Suponiendo que tienes un hook de autenticación
-import { API_CONFIG } from '../config/config';
+import { useAuthContext } from '../providers/AuthProvider'; // Usar el contexto correcto
+import { API_CONFIG } from '@/config/config'; // Importación corregida
 
 export function useApi() {
-  const { token } = useAuth(); // Obtiene el token del contexto de autenticación
+  const { token } = useAuthContext(); // Usar el contexto de autenticación correcto
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -14,25 +15,35 @@ export function useApi() {
       setError(null);
 
       try {
-        const response = await fetch(`${API_CONFIG.BASE_URL}${endpoint}`, {
+        const url = `${API_CONFIG.BASE_URL}${endpoint}`;
+        console.log('API Request:', url, options); // Para debugging
+
+        const response = await fetch(url, {
           ...options,
           headers: {
             ...API_CONFIG.DEFAULT_HEADERS,
             ...options.headers,
-            Authorization: `Bearer ${token}`,
+            ...(token && { Authorization: `Bearer ${token}` }), // Solo agregar si hay token
           },
         });
 
         if (!response.ok) {
-          const errorData = await response.json().catch(() => ({ message: `Error HTTP ${response.status}` }));
-          throw new Error(errorData.message || `Error en la petición`);
+          const errorData = await response.json().catch(() => ({
+            message: `Error HTTP ${response.status}`
+          }));
+          throw new Error(errorData.message || `Error en la petición: ${response.status}`);
         }
-        
+
         // Si el body está vacío, devuelve null en lugar de fallar al parsear JSON
         const text = await response.text();
-        return text ? JSON.parse(text).data : null;
+        if (!text) return null;
+
+        const jsonData = JSON.parse(text);
+        // Retorna data si existe, si no retorna todo el objeto
+        return jsonData.data || jsonData;
 
       } catch (err: any) {
+        console.error('API Error:', err); // Para debugging
         setError(err.message || 'Ha ocurrido un error inesperado');
         return null;
       } finally {
@@ -42,5 +53,39 @@ export function useApi() {
     [token]
   );
 
-  return { request, loading, error };
+  // Métodos de conveniencia para HTTP
+  const get = useCallback(<T>(endpoint: string, options?: RequestInit) =>
+    request<T>(endpoint, { ...options, method: 'GET' }), [request]
+  );
+
+  const post = useCallback(<T>(endpoint: string, data?: any, options?: RequestInit) =>
+    request<T>(endpoint, {
+      ...options,
+      method: 'POST',
+      body: data ? JSON.stringify(data) : undefined
+    }), [request]
+  );
+
+  const put = useCallback(<T>(endpoint: string, data?: any, options?: RequestInit) =>
+    request<T>(endpoint, {
+      ...options,
+      method: 'PUT',
+      body: data ? JSON.stringify(data) : undefined
+    }), [request]
+  );
+
+  const del = useCallback(<T>(endpoint: string, options?: RequestInit) =>
+    request<T>(endpoint, { ...options, method: 'DELETE' }), [request]
+  );
+
+  return {
+    request,
+    get,
+    post,
+    put,
+    delete: del,
+    loading,
+    error,
+    clearError: () => setError(null)
+  };
 }

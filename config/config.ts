@@ -1,69 +1,42 @@
-// Kompapay/Front/src/config/index.ts
+// config/config.ts
 
-import Constants from 'expo-constants';
+// Detectar si estás en desarrollo o producción
+const __DEV__ = process.env.NODE_ENV === 'development';
 
-/**
- * =============================================================================
- * ARCHIVO DE CONFIGURACIÓN GLOBAL
- * =============================================================================
- * Este archivo centraliza toda la configuración de la aplicación KompaPay.
- * Incluye:
- * - Configuración de API y entorno.
- * - Endpoints de la API.
- * - Claves de almacenamiento local.
- * - Constantes y configuraciones de la aplicación.
- * - Enumeraciones (Enums).
- * - Tipos e interfaces de TypeScript para todo el proyecto.
- *
- * La configuración prioriza el uso de variables de entorno (.env) para
- * mayor seguridad y flexibilidad entre entornos de desarrollo y producción.
- * =============================================================================
- */
-
-// -----------------------------------------------------------------------------
-// SECCIÓN 1: CONFIGURACIÓN DE ENTORNO Y API
-// -----------------------------------------------------------------------------
-
-const { manifest } = Constants;
-
-// Lectura segura de variables de entorno
-const EXPO_PUBLIC_API_URL = manifest?.extra?.EXPO_PUBLIC_API_URL;
-const EXPO_PUBLIC_PUSHER_KEY = manifest?.extra?.EXPO_PUBLIC_PUSHER_KEY;
-const EXPO_PUBLIC_PUSHER_CLUSTER = manifest?.extra?.EXPO_PUBLIC_PUSHER_CLUSTER;
-
-/**
- * Obtiene la URL base de la API de forma segura desde las variables de entorno.
- * Lanza un error si la variable no está configurada para evitar problemas en tiempo de ejecución.
- * @returns {string} La URL base de la API.
- */
-function getApiBaseUrl(): string {
-  if (EXPO_PUBLIC_API_URL) {
-    return EXPO_PUBLIC_API_URL;
+// Configuraciones por entorno
+const CONFIG = {
+  development: {
+    API_URL: 'http://localhost:8000/api',
+    PUSHER: {
+      key: '78f7dc9da405f17d9e93', // Tu key real de Pusher
+      cluster: 'us2',
+      authEndpoint: 'http://localhost:8000/broadcasting/auth',
+    }
+  },
+  production: {
+    API_URL: 'https://tu-app.onrender.com/api',
+    PUSHER: {
+      key: '78f7dc9da405f17d9e93', // La misma key para producción
+      cluster: 'us2',
+      authEndpoint: 'https://tu-app.onrender.com/broadcasting/auth',
+    }
   }
-  throw new Error(
-    'FATAL: La variable EXPO_PUBLIC_API_URL no está definida en tu archivo .env. Por favor, crea un archivo .env en la raíz del proyecto y añade la IP de tu servidor. Ejemplo: EXPO_PUBLIC_API_URL=http://192.168.1.100:8000/api'
-  );
-}
+};
 
-// URL base para uso directo en toda la aplicación
-export const BASE_URL = getApiBaseUrl();
+// Exportar la configuración actual
+export const API_URL = __DEV__ ? CONFIG.development.API_URL : CONFIG.production.API_URL;
+export const PUSHER_CONFIG = __DEV__ ? CONFIG.development.PUSHER : CONFIG.production.PUSHER;
 
-// Configuración principal del cliente de API (ej. Axios)
+// Configuración para el hook useApi
 export const API_CONFIG = {
-  BASE_URL,
-  TIMEOUT: 10000, // 10 segundos
+  BASE_URL: API_URL,
   DEFAULT_HEADERS: {
     'Content-Type': 'application/json',
     'Accept': 'application/json',
   },
+  TIMEOUT: 30000, // 30 segundos
 };
 
-// Configuración de Pusher para WebSockets y broadcasting
-export const PUSHER_CONFIG = {
-  key: EXPO_PUBLIC_PUSHER_KEY || 'default_pusher_key', // Fallback por si no está en .env
-  cluster: EXPO_PUBLIC_PUSHER_CLUSTER || 'mt1',
-  authEndpoint: `${BASE_URL}/broadcasting/auth`,
-};
 
 // -----------------------------------------------------------------------------
 // SECCIÓN 2: CONSTANTES Y CLAVES DE LA APLICACIÓN
@@ -440,6 +413,27 @@ export interface ResolveConflictRequest {
 }
 
 export interface UpdateUserRequest extends Partial<Omit<User, 'id' | 'email'>> {}
+
+export interface APIResponse<T = any> {
+  success: boolean;
+  message?: string;
+  data?: T;
+  errors?: any;
+}
+
+// --- Interfaz para el Log de Auditoría (useUtils) ---
+
+export interface AuditLog {
+  id: string;
+  user_id: string;
+  user_name: string; // Para mostrar fácilmente quién hizo la acción
+  action: string; // Ej: 'created_group', 'added_expense', 'deleted_member'
+  entity_type: string; // Ej: 'App\Models\Grupo', 'App\Models\Gasto'
+  entity_id: string;
+  details?: Record<string, any>; // Para guardar datos adicionales, como el nombre del grupo creado
+  created_at: string;
+}
+
 
 // -- Interfaces para Callbacks de WebSockets --
 

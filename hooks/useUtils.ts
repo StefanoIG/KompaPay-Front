@@ -5,7 +5,7 @@ import {
     APIResponse,
     AuditLog,
     Gasto
-} from './types';
+} from '@/config/config';
 import { useApi } from './useAPI';
 
 // Hook para utilidades generales

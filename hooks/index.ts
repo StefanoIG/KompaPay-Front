@@ -43,35 +43,21 @@ export * from './useGroups';    // Lógica para grupos
 // -- Sincronización y Offline --
 export * from './useSync';      // Sincronización de datos con el servidor
 export * from './useOffline';   // Manejo de acciones offline
-export * from './useConflicts'; // Resolución de conflictos de datos
+export { useConflicts } from './useConflicts'; // Resolución de conflictos de datos
 
 // -- Colaboración (Tableros, Notas, Tareas) --
-export * from './useWebSocket'; // Conexión y manejo de eventos WebSocket
 export * from './useTableros';  // Lógica para los tableros tipo Trello
 export * from './useTareas';    // Lógica para las tareas dentro de los tableros
 export * from './useNotas';     // Lógica para las notas colaborativas
 
 // -- UI, Validación y Utilidades --
-export * from './useUI';        // Hooks específicos para la lógica de la UI
 export * from './useValidation';// Hooks para validación de formularios
 export * from './useUtils';     // Hooks con funciones de utilidad general
 export * from './useCache';     // Manejo de caché
 export * from './useNetworkStatus';// Detección del estado de la red
 
-
 // -----------------------------------------------------------------------------
-// SECCIÓN 3: EXPORTACIÓN DE HOOKS DE ORQUESTACIÓN
-// -----------------------------------------------------------------------------
-// Estos hooks combinan múltiples hooks individuales para proporcionar una
-// funcionalidad completa a una pantalla o componente complejo.
-// NOTA: La lógica de estos hooks debe estar en su propio archivo.
-
-export * from './useColaboracion';    // Orquesta WebSocket, Tableros y Notas
-export * from './useTableroCompleto'; // Orquesta Tareas y Estadísticas para un Tablero
-
-
-// -----------------------------------------------------------------------------
-// SECCIÓN 4: METADATOS Y CONSTANTES DE LA LIBRERÍA DE HOOKS
+// SECCIÓN 3: METADATOS Y CONSTANTES DE LA LIBRERÍA DE HOOKS
 // -----------------------------------------------------------------------------
 
 export const HOOK_INFO = {
