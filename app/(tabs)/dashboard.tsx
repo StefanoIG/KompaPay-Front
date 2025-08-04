@@ -1,33 +1,32 @@
 // app/(tabs)/dashboard.tsx
-import React, { useState, useCallback } from 'react';
+import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
+import { useRouter } from 'expo-router';
+import React, { useCallback, useState } from 'react';
 import {
-    View,
-    Text,
-    StyleSheet,
-    ScrollView,
-    TouchableOpacity,
-    RefreshControl,
     ActivityIndicator,
-    Modal,
-    TextInput,
     Alert,
-    Button,
+    Modal,
+    RefreshControl,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { LinearGradient } from 'expo-linear-gradient';
-import { Ionicons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
 
 // 1. Importar nuestros hooks de datos reales
-import { useAuthContext } from '@/providers/AuthProvider';
-import { useGroups } from '@/hooks/useGroups';
-import { useExpenses } from '@/hooks/useExpenses';
 import { useDebts } from '@/hooks/useDebts';
+import { useExpenses } from '@/hooks/useExpenses';
+import { useGroups } from '@/hooks/useGroups';
+import { useAuthContext } from '@/providers/AuthProvider';
 
 // 2. Importar constantes y utilidades (SIN Shadows)
-import { KompaColors, Spacing, FontSizes, BorderRadius } from '@/constants/Styles';
-import { formatCurrency, formatDate } from '@/utils/formatters';
 import { Grupo } from '@/config/config';
+import { BorderRadius, FontSizes, KompaColors, Spacing } from '@/constants/Styles';
+import { formatCurrency } from '@/utils/formatters';
 
 // Types for component props
 interface BalanceSummary {
@@ -158,14 +157,14 @@ export default function DashboardScreen() {
         });
 
         if (success) {
-            Alert.alert('Éxito', 'Gasto añadido correctamente');
+            Alert.alert('Éxito', 'Gasto creado correctamente');
             setModalVisible(false);
             setExpenseDescription('');
             setExpenseAmount('');
             setSelectedGroupId(null);
             onRefresh(); // Refrescar los datos
         } else {
-            Alert.alert('Error', 'No se pudo añadir el gasto');
+            Alert.alert('Error', 'No se pudo crear el gasto');
         }
     };
 
@@ -248,7 +247,7 @@ export default function DashboardScreen() {
                         icon="card" 
                         title="Gastos del Mes" 
                         value={formatCurrency(2140.75)} 
-                        description="+12% vs mes pasado" 
+                        description="+12% vs mes anterior" 
                     />
                     <SummaryCard 
                         icon="calendar" 
@@ -300,7 +299,7 @@ export default function DashboardScreen() {
                 <View style={styles.modalOverlay}>
                     <View style={styles.modalContent}>
                         <View style={styles.modalHeader}>
-                            <Text style={styles.modalTitle}>Añadir Gasto</Text>
+                            <Text style={styles.modalTitle}>Crear Gasto</Text>
                             <TouchableOpacity 
                                 onPress={() => setModalVisible(false)}
                                 style={styles.modalCloseButton}

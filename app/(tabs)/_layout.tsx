@@ -1,12 +1,11 @@
 // app/(tabs)/_layout.tsx
 
-import React, { useState } from 'react';
-import { Tabs, useRouter } from 'expo-router';
-import { Platform, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { Tabs, useRouter } from 'expo-router';
+import React, { useState } from 'react';
+import { Platform, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 import { HapticTab } from '@/components/HapticTab';
-import { IconSymbol } from '@/components/ui/IconSymbol';
 import TabBarBackground from '@/components/ui/TabBarBackground';
 import { KompaColors, Shadows } from '@/constants/Styles';
 import { useAuthContext } from '@/providers/AuthProvider'; // 1. Importar el contexto de Auth
@@ -108,17 +107,67 @@ export default function TabLayout() {
           }),
         }}
       >
-        {/* 4. La pestaña principal ahora es el dashboard refactorizado */}
+        {/* La pestaña principal es el dashboard */}
         <Tabs.Screen
           name="dashboard"
           options={{
             title: 'Inicio',
             tabBarIcon: ({ color, focused }) => (
-              <IconSymbol size={28} name={focused ? 'house.fill' : 'house'} color={color} />
+              <Ionicons name={focused ? 'home' : 'home-outline'} size={24} color={color} />
             ),
           }}
         />
         
+        <Tabs.Screen
+          name="groups"
+          options={{
+            title: 'Grupos',
+            tabBarIcon: ({ color, focused }) => (
+              <Ionicons name={focused ? 'people' : 'people-outline'} size={24} color={color} />
+            ),
+          }}
+        />
+        
+        <Tabs.Screen
+          name="expenses"
+          options={{
+            title: 'Gastos',
+            tabBarIcon: ({ color, focused }) => (
+              <Ionicons name={focused ? 'card' : 'card-outline'} size={24} color={color} />
+            ),
+          }}
+        />
+        
+        <Tabs.Screen
+          name="notes"
+          options={{
+            title: 'Notas',
+            tabBarIcon: ({ color, focused }) => (
+              <Ionicons name={focused ? 'document-text' : 'document-text-outline'} size={24} color={color} />
+            ),
+          }}
+        />
+        
+        <Tabs.Screen
+          name="notifications"
+          options={{
+            title: 'Notificaciones',
+            tabBarIcon: ({ color, focused }) => (
+              <Ionicons name={focused ? 'notifications' : 'notifications-outline'} size={24} color={color} />
+            ),
+          }}
+        />
+        
+        <Tabs.Screen
+          name="reportes"
+          options={{
+            title: 'Reportes',
+            tabBarIcon: ({ color, focused }) => (
+              <Ionicons name={focused ? 'analytics' : 'analytics-outline'} size={24} color={color} />
+            ),
+          }}
+        />
+
         {/* Solo mostrar explorar si NO está autenticado */}
         {!isAuthenticated && (
           <Tabs.Screen
@@ -126,63 +175,11 @@ export default function TabLayout() {
             options={{
               title: 'Explorar',
               tabBarIcon: ({ color, focused }) => (
-                <IconSymbol size={28} name={focused ? 'sparkles' : 'sparkles'} color={color} />
+                <Ionicons name={focused ? 'sparkles' : 'sparkles-outline'} size={24} color={color} />
               ),
             }}
           />
         )}
-        
-        {/* Mostrar estas pestañas solo si está autenticado */}
-        {isAuthenticated && (
-          <>
-            <Tabs.Screen
-              name="groups"
-              options={{
-                title: 'Grupos',
-                tabBarIcon: ({ color, focused }) => (
-                  <IconSymbol size={28} name={focused ? 'person.3.fill' : 'person.3'} color={color} />
-                ),
-              }}
-            />
-            <Tabs.Screen
-              name="expenses"
-              options={{
-                title: 'Gastos',
-                tabBarIcon: ({ color, focused }) => (
-                  <IconSymbol size={28} name={focused ? 'creditcard.fill' : 'creditcard'} color={color} />
-                ),
-              }}
-            />
-            <Tabs.Screen
-              name="notes"
-              options={{
-                title: 'Notas',
-                tabBarIcon: ({ color, focused }) => (
-                  <IconSymbol size={28} name={focused ? 'note.text' : 'note.text'} color={color} />
-                ),
-              }}
-            />
-            <Tabs.Screen
-              name="notifications"
-              options={{
-                title: 'Notificaciones',
-                tabBarIcon: ({ color, focused }) => (
-                  <IconSymbol size={28} name={focused ? 'bell.fill' : 'bell'} color={color} />
-                ),
-              }}
-            />
-          </>
-        )}
-        
-        <Tabs.Screen
-          name="reportes"
-          options={{
-            title: 'Reportes',
-            tabBarIcon: ({ color, focused }) => (
-              <IconSymbol size={28} name={focused ? 'chart.bar.fill' : 'chart.bar'} color={color} />
-            ),
-          }}
-        />
 
         {/* 5. Ocultar las pantallas que no queramos en la barra de pestañas */}
         <Tabs.Screen name="boards" options={{ href: null }} />

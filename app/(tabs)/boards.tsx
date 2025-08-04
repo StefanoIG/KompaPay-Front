@@ -1,13 +1,13 @@
 // app/(tabs)/boards.tsx
-import React, { useState } from 'react';
-import { View, ScrollView, StyleSheet, ActivityIndicator, Text, Button, TouchableOpacity, Alert } from 'react-native';
-import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useTableros } from '@/hooks/useTableros';
-import { useGroups } from '@/hooks/useGroups';
 import { BoardColumn } from '@/components/boards/BoardColumn';
 import { KompaColors } from '@/constants/Styles';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { useGroups } from '@/hooks/useGroups';
+import { useTableros } from '@/hooks/useTableros';
 import { Ionicons } from '@expo/vector-icons';
+import { useLocalSearchParams, useRouter } from 'expo-router';
+import React, { useState } from 'react';
+import { ActivityIndicator, Alert, Button, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function BoardsScreen() {
     // Asumimos que el groupId se pasa como parámetro al navegar a esta pantalla
@@ -22,6 +22,11 @@ export default function BoardsScreen() {
     const { tableros, loading, error, fetchTableros, createTablero } = useTableros(selectedGroupId);
 
     const handleCreateBoard = () => {
+        if (!selectedGroupId) {
+            Alert.alert('Error', 'Primero selecciona un grupo para crear un tablero');
+            return;
+        }
+
         Alert.prompt(
             'Nuevo Tablero',
             'Ingresa el nombre del tablero:',
@@ -32,15 +37,21 @@ export default function BoardsScreen() {
                     onPress: async (nombre?: string) => {
                         if (nombre && nombre.trim()) {
                             try {
-                                await createTablero({
+                                console.log('Creando tablero:', nombre.trim(), 'en grupo:', selectedGroupId);
+                                const nuevoTablero = await createTablero({
                                     nombre: nombre.trim(),
                                     descripcion: '',
                                     color: '#3B82F6'
                                 });
+                                console.log('Tablero creado:', nuevoTablero);
                                 fetchTableros(); // Refrescar la lista
+                                Alert.alert('Éxito', 'Tablero creado correctamente');
                             } catch (error) {
+                                console.error('Error al crear tablero:', error);
                                 Alert.alert('Error', 'No se pudo crear el tablero');
                             }
+                        } else {
+                            Alert.alert('Error', 'El nombre del tablero es obligatorio');
                         }
                     }
                 }
@@ -134,7 +145,10 @@ export default function BoardsScreen() {
                                 {groups.find(g => g.id === selectedGroupId)?.nombre}
                             </Text>
                         </View>
-                        <TouchableOpacity style={styles.addButton}>
+                        <TouchableOpacity 
+                            style={styles.addButton}
+                            onPress={handleCreateBoard}
+                        >
                             <Ionicons name="add" size={24} color={KompaColors.primary} />
                         </TouchableOpacity>
                     </>
@@ -155,7 +169,7 @@ export default function BoardsScreen() {
                         onPress={handleCreateBoard}
                     >
                         <Ionicons name="add-circle" size={20} color="white" />
-                        <Text style={styles.createFirstBoardText}>Crear primer tablero</Text>
+                        <Text style={styles.createFirstBoardText}>Iniciar Tablero</Text>
                     </TouchableOpacity>
                 </View>
             ) : (

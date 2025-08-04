@@ -1,25 +1,24 @@
 // src/components/modals/AddExpenseModal.tsx
-import React, { useState, useEffect } from 'react';
+import { User } from '@/config/config';
+import { KompaColors } from '@/constants/Styles';
+import { useExpenses } from '@/hooks/useExpenses';
+import { useGroups } from '@/hooks/useGroups';
+import { useAuthContext } from '@/providers/AuthProvider';
+import { formatCurrency } from '@/utils/formatters';
+import { Ionicons } from '@expo/vector-icons';
+import React, { useEffect, useState } from 'react';
 import {
-    View,
-    Text,
+    ActivityIndicator,
+    Alert,
     Modal,
+    ScrollView,
     StyleSheet,
+    Text,
     TextInput,
     TouchableOpacity,
-    ScrollView,
-    Alert,
-    ActivityIndicator,
-    Switch,
+    View
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
-import { useGroups } from '@/hooks/useGroups';
-import { useExpenses } from '@/hooks/useExpenses';
-import { useAuthContext } from '@/providers/AuthProvider';
-import { KompaColors } from '@/constants/Styles';
-import { formatCurrency } from '@/utils/formatters';
-import { User } from '@/config/config';
 
 // Types for split functionality
 type SplitType = 'equal' | 'percentage' | 'custom';
@@ -167,7 +166,7 @@ export const AddExpenseModal = ({ visible, onClose }: AddExpenseModalProps) => {
             monto_proporcional: member.amount
         }));
 
-        const newExpense = await createExpense({
+        console.log('Creando gasto:', {
             descripcion: description.trim(),
             monto_total: numericAmount,
             grupo_id: selectedGroupId,
@@ -175,17 +174,32 @@ export const AddExpenseModal = ({ visible, onClose }: AddExpenseModalProps) => {
             participantes: participants,
         });
 
-        if (newExpense) {
-            Alert.alert('Éxito', 'Gasto creado correctamente');
-            // Reset form
-            setDescription('');
-            setAmount('');
-            setSelectedGroupId(null);
-            setSplitMembers([]);
-            setSplitType('equal');
-            onClose();
-        } else {
-            Alert.alert('Error', 'No se pudo crear el gasto.');
+        try {
+            const newExpense = await createExpense({
+                descripcion: description.trim(),
+                monto_total: numericAmount,
+                grupo_id: selectedGroupId,
+                pagado_por: user!.id,
+                participantes: participants,
+            });
+
+            console.log('Respuesta del createExpense:', newExpense);
+
+            if (newExpense) {
+                Alert.alert('Éxito', 'Gasto creado correctamente');
+                // Reset form
+                setDescription('');
+                setAmount('');
+                setSelectedGroupId(null);
+                setSplitMembers([]);
+                setSplitType('equal');
+                onClose();
+            } else {
+                Alert.alert('Error', 'No se pudo crear el gasto.');
+            }
+        } catch (error) {
+            console.error('Error al crear gasto:', error);
+            Alert.alert('Error', 'Ocurrió un error al crear el gasto.');
         }
     };
     
@@ -351,6 +365,11 @@ export const AddExpenseModal = ({ visible, onClose }: AddExpenseModalProps) => {
                                     
                                     {/* Split Summary */}
                                     <View style={styles.splitSummary}>
+                                        <Text style={styles.splitSummaryTitle}>Resumen de División</Text>
+                                        <View style={styles.summaryRow}>
+                                            <Text style={styles.summaryLabel}>Monto total:</Text>
+                                            <Text style={styles.summaryValue}>{formatCurrency(parseFloat(amount) || 0)}</Text>
+                                        </View>
                                         <View style={styles.summaryRow}>
                                             <Text style={styles.summaryLabel}>Total asignado:</Text>
                                             <Text style={styles.summaryValue}>{formatCurrency(getTotalSplit())}</Text>
@@ -364,6 +383,19 @@ export const AddExpenseModal = ({ visible, onClose }: AddExpenseModalProps) => {
                                                 {formatCurrency(getRemainingAmount())}
                                             </Text>
                                         </View>
+                                        {splitType === 'equal' && (
+                                            <View style={styles.summaryRow}>
+                                                <Text style={styles.summaryLabel}>Por persona:</Text>
+                                                <Text style={styles.summaryValue}>
+                                                    {formatCurrency((parseFloat(amount) || 0) / splitMembers.filter(m => m.selected).length || 0)}
+                                                </Text>
+                                            </View>
+                                        )}
+                                        {Math.abs(getRemainingAmount()) > 0.01 && (
+                                            <Text style={styles.validationError}>
+                                                ⚠️ El total debe coincidir con el monto del gasto
+                                            </Text>
+                                        )}
                                     </View>
                                 </View>
                             </>
@@ -613,5 +645,19 @@ const styles = StyleSheet.create({
     },
     summaryValueError: {
         color: KompaColors.error,
+    },
+    splitSummaryTitle: {
+        fontSize: 16,
+        fontWeight: 'bold',
+        color: KompaColors.textPrimary,
+        marginBottom: 8,
+        textAlign: 'center',
+    },
+    validationError: {
+        fontSize: 12,
+        color: KompaColors.error,
+        textAlign: 'center',
+        marginTop: 8,
+        fontStyle: 'italic',
     },
 });

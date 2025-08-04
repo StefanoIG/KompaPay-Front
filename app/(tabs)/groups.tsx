@@ -1,28 +1,28 @@
 // app/(tabs)/groups.tsx
-import React, { useState, useMemo } from 'react';
-import {
-    View,
-    Text,
-    StyleSheet,
-    TextInput,
-    FlatList,
-    ActivityIndicator,
-    TouchableOpacity,
-    Modal,
-    Alert,
-    Clipboard,
-    Share,
-} from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
+import React, { useMemo, useState } from 'react';
+import {
+    ActivityIndicator,
+    Alert,
+    Clipboard,
+    FlatList,
+    Modal,
+    Share,
+    StyleSheet,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View,
+} from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 // 1. Importar hooks de datos reales
 import { useGroups } from '@/hooks/useGroups';
 
 // 2. Importar componentes y constantes
 import { GroupCard } from '@/components/groups/GroupCard';
-import { KompaColors, Spacing, FontSizes, BorderRadius } from '@/constants/Styles';
+import { BorderRadius, FontSizes, KompaColors, Spacing } from '@/constants/Styles';
 
 // --- Componente Principal ---
 export default function GroupsScreen() {
@@ -39,6 +39,7 @@ export default function GroupsScreen() {
         descripcion: '',
     });
     const [joinCode, setJoinCode] = useState('');
+    const [isCreating, setIsCreating] = useState(false);
 
     // 5. Lógica de filtrado
     const filteredGroups = useMemo(() => {
@@ -58,7 +59,10 @@ export default function GroupsScreen() {
             return;
         }
 
+        if (isCreating) return; // Prevenir múltiples clicks
+
         try {
+            setIsCreating(true);
             await createGroup({
                 nombre: newGroup.nombre.trim(),
                 descripcion: newGroup.descripcion.trim() || undefined,
@@ -68,6 +72,8 @@ export default function GroupsScreen() {
             Alert.alert('Éxito', 'Grupo creado correctamente');
         } catch (error) {
             Alert.alert('Error', 'No se pudo crear el grupo');
+        } finally {
+            setIsCreating(false);
         }
     };
 
@@ -168,8 +174,16 @@ export default function GroupsScreen() {
                             <Ionicons name="close" size={24} color={KompaColors.textPrimary} />
                         </TouchableOpacity>
                         <Text style={styles.modalTitle}>Nuevo Grupo</Text>
-                        <TouchableOpacity onPress={handleCreateGroup}>
-                            <Text style={styles.saveButton}>Crear</Text>
+                        <TouchableOpacity 
+                            onPress={handleCreateGroup} 
+                            disabled={isCreating}
+                            style={[styles.saveButtonContainer, isCreating && styles.saveButtonDisabled]}
+                        >
+                            {isCreating ? (
+                                <ActivityIndicator size="small" color={KompaColors.primary} />
+                            ) : (
+                                <Text style={styles.saveButton}>Crear</Text>
+                            )}
                         </TouchableOpacity>
                     </View>
 
@@ -228,7 +242,7 @@ export default function GroupsScreen() {
                             />
                         </View>
                         <Text style={styles.helpText}>
-                            Pídele a un miembro del grupo que comparta contigo el código de invitación.
+                            Solicita a un miembro del grupo que comparta contigo el código de invitación.
                         </Text>
                     </View>
                 </View>
@@ -366,5 +380,15 @@ const styles = StyleSheet.create({
         fontStyle: 'italic',
         marginTop: Spacing.sm,
         lineHeight: 20,
+    },
+    saveButtonContainer: {
+        paddingHorizontal: Spacing.md,
+        paddingVertical: Spacing.sm,
+        minWidth: 60,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    saveButtonDisabled: {
+        opacity: 0.6,
     },
 });

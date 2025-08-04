@@ -20,6 +20,7 @@ import { useExpenses } from '@/hooks/useExpenses';
 import { useGroups } from '@/hooks/useGroups'; // Para el filtro de grupos
 
 // 2. Importar componentes y constantes
+import { AddExpenseModal } from '@/components/modals/AddExpenseModal';
 import { ExpenseCard } from '@/components/expenses/ExpenseCard';
 import { KompaColors, Shadows, Spacing, FontSizes, BorderRadius } from '@/constants/Styles';
 
@@ -63,12 +64,6 @@ export default function ExpensesScreen() {
     const [searchQuery, setSearchQuery] = useState('');
     const [selectedGroup, setSelectedGroup] = useState('All Groups');
     const [isModalVisible, setModalVisible] = useState(false);
-    const [newExpense, setNewExpense] = useState({
-        descripcion: '',
-        monto_total: '',
-        categoria: 'Comida',
-        grupo_id: '',
-    });
 
     // 5. Lógica de filtrado
     const filteredExpenses = useMemo(() => {
@@ -91,23 +86,6 @@ export default function ExpensesScreen() {
     const handleDelete = (expense: any) => {
         // Lógica para confirmar y eliminar
         Alert.alert('Eliminar', `¿Eliminar gasto: ${expense.descripcion}?`);
-    };
-
-    // 6. Función para crear gasto
-    const handleCreateExpense = async () => {
-        if (!newExpense.descripcion.trim() || !newExpense.monto_total || !newExpense.grupo_id) {
-            Alert.alert('Error', 'Por favor completa todos los campos obligatorios');
-            return;
-        }
-
-        try {
-            // Aquí iría la lógica real para crear el gasto
-            Alert.alert('Éxito', 'Gasto creado correctamente');
-            setNewExpense({ descripcion: '', monto_total: '', categoria: 'Comida', grupo_id: '' });
-            setModalVisible(false);
-        } catch (error) {
-            Alert.alert('Error', 'No se pudo crear el gasto');
-        }
     };
 
     return (
@@ -150,93 +128,11 @@ export default function ExpensesScreen() {
                 <Ionicons name="add" size={32} color="white" />
             </TouchableOpacity>
 
-            {/* Modal para crear nuevo gasto */}
-            <Modal
+            {/* Modal para crear nuevo gasto usando el componente avanzado */}
+            <AddExpenseModal 
                 visible={isModalVisible}
-                animationType="slide"
-                presentationStyle="pageSheet"
-            >
-                <View style={styles.modalContainer}>
-                    <View style={styles.modalHeader}>
-                        <TouchableOpacity onPress={() => setModalVisible(false)}>
-                            <Ionicons name="close" size={24} color={KompaColors.textPrimary} />
-                        </TouchableOpacity>
-                        <Text style={styles.modalTitle}>Nuevo Gasto</Text>
-                        <TouchableOpacity onPress={handleCreateExpense}>
-                            <Text style={styles.saveButton}>Crear</Text>
-                        </TouchableOpacity>
-                    </View>
-
-                    <ScrollView style={styles.modalContent}>
-                        <View style={styles.inputGroup}>
-                            <Text style={styles.inputLabel}>Descripción *</Text>
-                            <TextInput
-                                style={styles.textInput}
-                                value={newExpense.descripcion}
-                                onChangeText={(text) => setNewExpense({ ...newExpense, descripcion: text })}
-                                placeholder="Ej: Cena en restaurante"
-                            />
-                        </View>
-
-                        <View style={styles.inputGroup}>
-                            <Text style={styles.inputLabel}>Monto Total *</Text>
-                            <TextInput
-                                style={styles.textInput}
-                                value={newExpense.monto_total}
-                                onChangeText={(text) => setNewExpense({ ...newExpense, monto_total: text })}
-                                placeholder="0.00"
-                                keyboardType="numeric"
-                            />
-                        </View>
-
-                        <View style={styles.inputGroup}>
-                            <Text style={styles.inputLabel}>Categoría</Text>
-                            <View style={styles.categoryContainer}>
-                                {['Comida', 'Transporte', 'Entretenimiento', 'Compras', 'Otros'].map((cat) => (
-                                    <TouchableOpacity
-                                        key={cat}
-                                        style={[
-                                            styles.categoryButton,
-                                            newExpense.categoria === cat && styles.categoryButtonActive
-                                        ]}
-                                        onPress={() => setNewExpense({ ...newExpense, categoria: cat })}
-                                    >
-                                        <Text style={[
-                                            styles.categoryText,
-                                            newExpense.categoria === cat && styles.categoryTextActive
-                                        ]}>
-                                            {cat}
-                                        </Text>
-                                    </TouchableOpacity>
-                                ))}
-                            </View>
-                        </View>
-
-                        <View style={styles.inputGroup}>
-                            <Text style={styles.inputLabel}>Grupo *</Text>
-                            <View style={styles.groupContainer}>
-                                {groups.map((group) => (
-                                    <TouchableOpacity
-                                        key={group.id}
-                                        style={[
-                                            styles.groupButton,
-                                            newExpense.grupo_id === group.id && styles.groupButtonActive
-                                        ]}
-                                        onPress={() => setNewExpense({ ...newExpense, grupo_id: group.id })}
-                                    >
-                                        <Text style={[
-                                            styles.groupText,
-                                            newExpense.grupo_id === group.id && styles.groupTextActive
-                                        ]}>
-                                            {group.nombre}
-                                        </Text>
-                                    </TouchableOpacity>
-                                ))}
-                            </View>
-                        </View>
-                    </ScrollView>
-                </View>
-            </Modal>
+                onClose={() => setModalVisible(false)}
+            />
         </SafeAreaView>
     );
 }

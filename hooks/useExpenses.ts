@@ -65,15 +65,26 @@ export const useExpenses = () => {
     }, [fetchExpenses]);
 
     const createExpense = useCallback(async (expenseData: CreateGastoRequest) => {
-        const newExpense = await request<Gasto>(ENDPOINTS.EXPENSES.CREATE, {
-            method: 'POST',
-            body: JSON.stringify(expenseData),
-        });
-        if (newExpense) {
-            // Optimista: añade el gasto al inicio de la lista actual
-            setExpenses(prev => [newExpense, ...prev]);
+        console.log('Hook createExpense - Datos enviados:', expenseData);
+        console.log('Hook createExpense - Endpoint:', ENDPOINTS.EXPENSES.CREATE);
+        
+        try {
+            const newExpense = await request<Gasto>(ENDPOINTS.EXPENSES.CREATE, {
+                method: 'POST',
+                body: JSON.stringify(expenseData),
+            });
+            
+            console.log('Hook createExpense - Respuesta recibida:', newExpense);
+            
+            if (newExpense) {
+                // Optimista: añade el gasto al inicio de la lista actual
+                setExpenses(prev => [newExpense, ...prev]);
+            }
+            return newExpense;
+        } catch (error) {
+            console.error('Hook createExpense - Error:', error);
+            throw error;
         }
-        return newExpense;
     }, [request]);
 
     const loadMore = useCallback((fetcher: () => void) => {
