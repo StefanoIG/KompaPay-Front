@@ -18,17 +18,21 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 
 // 1. Importar hooks y componentes
 import { useNotas } from '@/hooks/useNotas';
+import { useGroups } from '@/hooks/useGroups';
 import { NoteCard } from '@/components/notes/NoteCard';
 import { KompaColors, Shadows, Spacing, FontSizes, BorderRadius } from '@/constants/Styles';
 
 // --- Componente Principal ---
 export default function NotesScreen() {
     const router = useRouter();
-    // Asumimos que el groupId viene de una pantalla anterior, como la de Grupos
-    const { groupId } = useLocalSearchParams<{ groupId: string }>();
-
-    // 2. Consumir el hook de datos
-    const { notas, loading, createNota } = useNotas(groupId);
+    // Obtener los grupos disponibles
+    const { groups } = useGroups();
+    
+    // Para este componente, vamos a manejar múltiples grupos
+    const [selectedGroupId, setSelectedGroupId] = useState<string>('');
+    
+    // 2. Consumir el hook de datos solo si hay un grupo seleccionado
+    const { notas, loading, createNota } = useNotas(selectedGroupId);
 
     // 3. Estado local para la búsqueda y el modal
     const [searchQuery, setSearchQuery] = useState('');
@@ -36,6 +40,7 @@ export default function NotesScreen() {
     const [newNote, setNewNote] = useState({
         titulo: '',
         contenido: '',
+        grupo_id: '',
     });
 
     // 4. Lógica de filtrado
@@ -49,7 +54,7 @@ export default function NotesScreen() {
 
     const handleNotePress = (noteId: string) => {
         // Navegar al detalle, pasando los IDs necesarios
-        router.push(`/colaboracion/nota_detalle?groupId=${groupId}&noteId=${noteId}` as any);
+        router.push(`/colaboracion/nota_detalle?groupId=${selectedGroupId}&noteId=${noteId}` as any);
     };
 
     // 5. Función para crear nota
@@ -64,12 +69,17 @@ export default function NotesScreen() {
             return;
         }
 
+        if (!newNote.grupo_id) {
+            Alert.alert('Error', 'Debes seleccionar un grupo');
+            return;
+        }
+
         try {
             await createNota({
                 titulo: newNote.titulo.trim(),
                 contenido: newNote.contenido.trim(),
             });
-            setNewNote({ titulo: '', contenido: '' });
+            setNewNote({ titulo: '', contenido: '', grupo_id: '' });
             setModalVisible(false);
             Alert.alert('Éxito', 'Nota creada correctamente');
         } catch (error) {
@@ -81,6 +91,30 @@ export default function NotesScreen() {
         <SafeAreaView style={styles.safeArea}>
             <View style={styles.header}>
                 <Text style={styles.headerTitle}>Notas Colaborativas</Text>
+            </View>
+
+            {/* Selector de grupo */}
+            <View style={styles.groupSelector}>
+                <Text style={styles.selectorLabel}>Selecciona un grupo:</Text>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.groupScroll}>
+                    {groups.map((group) => (
+                        <TouchableOpacity
+                            key={group.id}
+                            style={[
+                                styles.groupChip,
+                                selectedGroupId === group.id && styles.groupChipActive
+                            ]}
+                            onPress={() => setSelectedGroupId(group.id)}
+                        >
+                            <Text style={[
+                                styles.groupChipText,
+                                selectedGroupId === group.id && styles.groupChipTextActive
+                            ]}>
+                                {group.nombre}
+                            </Text>
+                        </TouchableOpacity>
+                    ))}
+                </ScrollView>
             </View>
 
             <View style={[styles.searchContainer, Shadows.sm]}>
@@ -95,7 +129,7 @@ export default function NotesScreen() {
 
             {loading && notas.length === 0 ? (
                 <ActivityIndicator size="large" style={{ marginTop: 20 }} />
-            ) : (
+            ) : selectedGroupId ? (
                 <FlatList
                     data={filteredNotes}
                     keyExtractor={(item) => item.id}
@@ -110,6 +144,10 @@ export default function NotesScreen() {
                         </View>
                     }
                 />
+            ) : (
+                <View style={styles.emptyContainer}>
+                    <Text>Selecciona un grupo para ver sus notas</Text>
+                </View>
             )}
 
             {/* Botón flotante para agregar nota */}
@@ -138,6 +176,29 @@ export default function NotesScreen() {
                     </View>
 
                     <ScrollView style={styles.modalContent}>
+                        <View style={styles.inputGroup}>
+                            <Text style={styles.inputLabel}>Grupo *</Text>
+                            <View style={styles.groupContainer}>
+                                {groups.map((group) => (
+                                    <TouchableOpacity
+                                        key={group.id}
+                                        style={[
+                                            styles.groupButton,
+                                            newNote.grupo_id === group.id && styles.groupButtonActive
+                                        ]}
+                                        onPress={() => setNewNote({ ...newNote, grupo_id: group.id })}
+                                    >
+                                        <Text style={[
+                                            styles.groupText,
+                                            newNote.grupo_id === group.id && styles.groupTextActive
+                                        ]}>
+                                            {group.nombre}
+                                        </Text>
+                                    </TouchableOpacity>
+                                ))}
+                            </View>
+                        </View>
+
                         <View style={styles.inputGroup}>
                             <Text style={styles.inputLabel}>Título *</Text>
                             <TextInput
@@ -272,5 +333,67 @@ const styles = StyleSheet.create({
     textArea: {
         height: 120,
         textAlignVertical: 'top',
+    },
+    groupSelector: {
+        padding: Spacing.md,
+        backgroundColor: '#FFFFFF',
+        marginHorizontal: Spacing.md,
+        marginBottom: Spacing.md,
+        borderRadius: BorderRadius.md,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+        elevation: 3,
+    },
+    selectorLabel: {
+        fontSize: FontSizes.md,
+        fontWeight: '600',
+        color: KompaColors.textPrimary,
+        marginBottom: Spacing.sm,
+    },
+    groupScroll: {
+        flexDirection: 'row',
+    },
+    groupChip: {
+        backgroundColor: KompaColors.gray100,
+        paddingHorizontal: Spacing.md,
+        paddingVertical: Spacing.sm,
+        borderRadius: BorderRadius.full,
+        marginRight: Spacing.sm,
+        borderWidth: 1,
+        borderColor: KompaColors.gray300,
+    },
+    groupChipActive: {
+        backgroundColor: KompaColors.primary,
+        borderColor: KompaColors.primary,
+    },
+    groupChipText: {
+        fontSize: FontSizes.sm,
+        color: KompaColors.textSecondary,
+    },
+    groupChipTextActive: {
+        color: '#FFFFFF',
+    },
+    groupContainer: {
+        gap: Spacing.sm,
+    },
+    groupButton: {
+        padding: Spacing.md,
+        borderRadius: BorderRadius.md,
+        borderWidth: 1,
+        borderColor: KompaColors.gray300,
+        backgroundColor: '#FFFFFF',
+    },
+    groupButtonActive: {
+        backgroundColor: KompaColors.secondary,
+        borderColor: KompaColors.secondary,
+    },
+    groupText: {
+        fontSize: FontSizes.md,
+        color: KompaColors.textPrimary,
+    },
+    groupTextActive: {
+        color: '#FFFFFF',
     },
 });

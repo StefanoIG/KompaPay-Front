@@ -10,6 +10,8 @@ import {
     TouchableOpacity,
     Modal,
     Alert,
+    Clipboard,
+    Share,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -31,11 +33,12 @@ export default function GroupsScreen() {
     
     // 4. Estado local para la búsqueda y modal
     const [searchQuery, setSearchQuery] = useState('');
-    const [isModalVisible, setModalVisible] = useState(false);
+    const [modalType, setModalType] = useState<'create' | 'join' | null>(null);
     const [newGroup, setNewGroup] = useState({
         nombre: '',
         descripcion: '',
     });
+    const [joinCode, setJoinCode] = useState('');
 
     // 5. Lógica de filtrado
     const filteredGroups = useMemo(() => {
@@ -61,10 +64,41 @@ export default function GroupsScreen() {
                 descripcion: newGroup.descripcion.trim() || undefined,
             });
             setNewGroup({ nombre: '', descripcion: '' });
-            setModalVisible(false);
+            setModalType(null);
             Alert.alert('Éxito', 'Grupo creado correctamente');
         } catch (error) {
             Alert.alert('Error', 'No se pudo crear el grupo');
+        }
+    };
+
+    // 7. Función para unirse a grupo
+    const handleJoinGroup = async () => {
+        if (!joinCode.trim()) {
+            Alert.alert('Error', 'El código del grupo es obligatorio');
+            return;
+        }
+
+        try {
+            // Aquí iría la lógica para unirse al grupo usando el código
+            Alert.alert('Éxito', 'Te has unido al grupo correctamente');
+            setJoinCode('');
+            setModalType(null);
+        } catch (error) {
+            Alert.alert('Error', 'No se pudo unir al grupo');
+        }
+    };
+
+    // 8. Función para compartir código de grupo
+    const handleShareGroup = async (group: any) => {
+        try {
+            await Share.share({
+                message: `¡Únete a mi grupo "${group.nombre}" en KompaPay!\n\nCódigo: ${group.id_publico}`,
+                title: 'Invitación a grupo'
+            });
+        } catch (error) {
+            // Fallback a clipboard
+            Clipboard.setString(group.id_publico);
+            Alert.alert('Copiado', 'El código del grupo ha sido copiado al portapapeles');
         }
     };
     
@@ -94,6 +128,7 @@ export default function GroupsScreen() {
                         <GroupCard 
                             group={item} 
                             onPress={() => router.push(`/boards?groupId=${item.id}`)}
+                            onShare={handleShareGroup}
                         />
                     )}
                     contentContainerStyle={styles.listContent}
@@ -108,20 +143,28 @@ export default function GroupsScreen() {
             {/* Botón flotante para agregar grupo */}
             <TouchableOpacity
                 style={styles.fab}
-                onPress={() => setModalVisible(true)}
+                onPress={() => setModalType('create')}
             >
                 <Ionicons name="add" size={24} color="white" />
             </TouchableOpacity>
 
+            {/* Botón secundario para unirse a grupo */}
+            <TouchableOpacity
+                style={styles.fabSecondary}
+                onPress={() => setModalType('join')}
+            >
+                <Ionicons name="enter" size={20} color="white" />
+            </TouchableOpacity>
+
             {/* Modal para crear nuevo grupo */}
             <Modal
-                visible={isModalVisible}
+                visible={modalType === 'create'}
                 animationType="slide"
                 presentationStyle="pageSheet"
             >
                 <View style={styles.modalContainer}>
                     <View style={styles.modalHeader}>
-                        <TouchableOpacity onPress={() => setModalVisible(false)}>
+                        <TouchableOpacity onPress={() => setModalType(null)}>
                             <Ionicons name="close" size={24} color={KompaColors.textPrimary} />
                         </TouchableOpacity>
                         <Text style={styles.modalTitle}>Nuevo Grupo</Text>
@@ -152,6 +195,41 @@ export default function GroupsScreen() {
                                 numberOfLines={3}
                             />
                         </View>
+                    </View>
+                </View>
+            </Modal>
+
+            {/* Modal para unirse a grupo */}
+            <Modal
+                visible={modalType === 'join'}
+                animationType="slide"
+                presentationStyle="pageSheet"
+            >
+                <View style={styles.modalContainer}>
+                    <View style={styles.modalHeader}>
+                        <TouchableOpacity onPress={() => setModalType(null)}>
+                            <Ionicons name="close" size={24} color={KompaColors.textPrimary} />
+                        </TouchableOpacity>
+                        <Text style={styles.modalTitle}>Unirse a Grupo</Text>
+                        <TouchableOpacity onPress={handleJoinGroup}>
+                            <Text style={styles.saveButton}>Unirse</Text>
+                        </TouchableOpacity>
+                    </View>
+
+                    <View style={styles.modalContent}>
+                        <View style={styles.inputGroup}>
+                            <Text style={styles.inputLabel}>Código del grupo *</Text>
+                            <TextInput
+                                style={styles.textInput}
+                                value={joinCode}
+                                onChangeText={setJoinCode}
+                                placeholder="Ingresa el código del grupo"
+                                autoCapitalize="none"
+                            />
+                        </View>
+                        <Text style={styles.helpText}>
+                            Pídele a un miembro del grupo que comparta contigo el código de invitación.
+                        </Text>
                     </View>
                 </View>
             </Modal>
@@ -218,6 +296,22 @@ const styles = StyleSheet.create({
         shadowRadius: 6,
         elevation: 8,
     },
+    fabSecondary: {
+        position: 'absolute',
+        bottom: 20,
+        right: 90,
+        width: 48,
+        height: 48,
+        borderRadius: 24,
+        backgroundColor: KompaColors.secondary,
+        justifyContent: 'center',
+        alignItems: 'center',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.3,
+        shadowRadius: 6,
+        elevation: 8,
+    },
     modalContainer: {
         flex: 1,
         backgroundColor: KompaColors.background,
@@ -265,5 +359,12 @@ const styles = StyleSheet.create({
     textArea: {
         height: 80,
         textAlignVertical: 'top',
+    },
+    helpText: {
+        fontSize: FontSizes.sm,
+        color: KompaColors.textSecondary,
+        fontStyle: 'italic',
+        marginTop: Spacing.sm,
+        lineHeight: 20,
     },
 });
