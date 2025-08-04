@@ -132,7 +132,6 @@ export const homeStyles = StyleSheet.create({
     width: isWeb && isLargeScreen ? '30%' : '100%',
     minWidth: isWeb && isLargeScreen ? 280 : undefined,
     marginBottom: Spacing.lg,
-    ...GlobalStyles.shadow.md,
   },
   featureCardWeb: {
     width: '30%',
@@ -180,7 +179,6 @@ export const homeStyles = StyleSheet.create({
     backgroundColor: KompaColors.background,
     padding: Spacing.lg,
     borderRadius: GlobalStyles.borderRadius.md,
-    ...GlobalStyles.shadow.sm,
     width: isWeb && isLargeScreen ? '48%' : '100%',
   },
   benefitIcon: {
@@ -206,7 +204,6 @@ export const homeStyles = StyleSheet.create({
     borderRadius: GlobalStyles.borderRadius.xl,
     padding: Spacing.xxl,
     alignItems: 'center',
-    ...GlobalStyles.shadow.lg,
   },
   ctaTitle: {
     textAlign: 'center',

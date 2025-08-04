@@ -1,7 +1,7 @@
 // src/hooks/useSync.ts
 
 import { useState, useCallback, useEffect, useRef } from 'react';
-import * as SecureStore from 'expo-secure-store';
+import { secureStorage } from './secureStorage';
 import { useApi } from './useAPI';
 import { useNetworkStatus } from './useNetworkStatus';
 import { useAuthContext } from '@/providers/AuthProvider';
@@ -28,7 +28,7 @@ export const useOfflineQueue = () => {
     const loadActions = useCallback(async () => {
         setIsLoading(true);
         try {
-            const actionsJson = await SecureStore.getItemAsync(STORAGE_KEYS.OFFLINE_ACTIONS);
+            const actionsJson = await secureStorage.getItemAsync(STORAGE_KEYS.OFFLINE_ACTIONS);
             setActions(actionsJson ? JSON.parse(actionsJson) : []);
         } finally {
             setIsLoading(false);
@@ -41,7 +41,7 @@ export const useOfflineQueue = () => {
 
     const saveActions = useCallback(async (updatedActions: OfflineAction[]) => {
         setActions(updatedActions);
-        await SecureStore.setItemAsync(STORAGE_KEYS.OFFLINE_ACTIONS, JSON.stringify(updatedActions));
+        await secureStorage.setItemAsync(STORAGE_KEYS.OFFLINE_ACTIONS, JSON.stringify(updatedActions));
     }, []);
 
     const addAction = useCallback((action: Omit<OfflineAction, 'id' | 'timestamp'>) => {
@@ -104,14 +104,14 @@ export const useSyncManager = () => {
     const [lastSync, setLastSync] = useState<string | null>(null);
 
     const loadLastSync = useCallback(async () => {
-        const time = await SecureStore.getItemAsync(STORAGE_KEYS.LAST_SYNC);
+        const time = await secureStorage.getItemAsync(STORAGE_KEYS.LAST_SYNC);
         setLastSync(time);
     }, []);
 
     const updateLastSync = useCallback(async () => {
         const now = new Date().toISOString();
         setLastSync(now);
-        await SecureStore.setItemAsync(STORAGE_KEYS.LAST_SYNC, now);
+        await secureStorage.setItemAsync(STORAGE_KEYS.LAST_SYNC, now);
     }, []);
 
     useEffect(() => {
@@ -197,7 +197,7 @@ export const useSync = () => {
             }
 
             // 2. Obtener datos actualizados del servidor
-            const lastSync = await SecureStore.getItemAsync(STORAGE_KEYS.LAST_SYNC);
+            const lastSync = await secureStorage.getItemAsync(STORAGE_KEYS.LAST_SYNC);
             const pullResult = await request<SyncData>(ENDPOINTS.SYNC.PULL, {
                 method: 'POST',
                 body: JSON.stringify({ 
@@ -207,7 +207,7 @@ export const useSync = () => {
 
             if (pullResult) {
                 // Actualizar timestamp de última sincronización
-                await SecureStore.setItemAsync(STORAGE_KEYS.LAST_SYNC, pullResult.server_timestamp);
+                await secureStorage.setItemAsync(STORAGE_KEYS.LAST_SYNC, pullResult.server_timestamp);
                 
                 setSyncStatus(prev => ({
                     ...prev,

@@ -1,5 +1,5 @@
-// Sistema de estilos global para KompaPay
-import { StyleSheet, Platform, Dimensions } from 'react-native';
+// constants/Styles.ts - Compatible con React Native Web
+import { Dimensions, Platform, StyleSheet } from 'react-native';
 
 // Obtener dimensiones de pantalla
 const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
@@ -9,18 +9,18 @@ const isLargeScreen = screenWidth > 768;
 // Paleta de colores extendida para KompaPay
 export const KompaColors = {
   // Colores primarios
-  primary: '#2563EB',        // Azul principal
-  primaryDark: '#1D4ED8',    // Azul oscuro
-  primaryLight: '#3B82F6',   // Azul claro
-  secondary: '#10B981',      // Verde secundario
-  secondaryDark: '#059669',  // Verde oscuro
-  secondaryLight: '#34D399', // Verde claro
+  primary: '#2563EB',
+  primaryDark: '#1D4ED8',
+  primaryLight: '#3B82F6',
+  secondary: '#10B981',
+  secondaryDark: '#059669',
+  secondaryLight: '#34D399',
   
   // Colores de estado
-  success: '#10B981',        // Verde éxito
-  warning: '#F59E0B',        // Amarillo advertencia
-  error: '#EF4444',          // Rojo error
-  info: '#3B82F6',           // Azul información
+  success: '#10B981',
+  warning: '#F59E0B',
+  error: '#EF4444',
+  info: '#3B82F6',
   
   // Grises
   gray50: '#F9FAFB',
@@ -52,11 +52,11 @@ export const KompaColors = {
   borderDark: '#374151',
   
   // Colores específicos de KompaPay
-  expense: '#EF4444',        // Rojo para gastos
-  income: '#10B981',         // Verde para ingresos/pagos
-  pending: '#F59E0B',        // Amarillo para pendientes
-  resolved: '#10B981',       // Verde para resueltos
-  conflict: '#EF4444',       // Rojo para conflictos
+  expense: '#EF4444',
+  income: '#10B981',
+  pending: '#F59E0B',
+  resolved: '#10B981',
+  conflict: '#EF4444',
 };
 
 // Espaciado consistente (responsive)
@@ -95,92 +95,51 @@ export const BorderRadius = {
   full: 9999,
 };
 
-// Sombras (con mejores efectos para web)
-export const Shadows = {
-  sm: isWeb ? {
-    boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.05)',
-  } : {
+// Función para crear sombras compatibles con web
+const createShadow = (elevation: number) => {
+  if (Platform.OS === 'web') {
+    return {
+      boxShadow: `0px ${Math.ceil(elevation * 0.5)}px ${elevation * 2}px rgba(0, 0, 0, 0.1)`,
+    };
+  }
+  
+  return {
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-    elevation: 1,
-  },
-  md: isWeb ? {
-    boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
-  } : {
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
+    shadowOffset: {
+      width: 0,
+      height: Math.ceil(elevation * 0.5),
+    },
     shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  lg: isWeb ? {
-    boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
-  } : {
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 8,
-    elevation: 5,
-  },
-  xl: isWeb ? {
-    boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
-  } : {
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.2,
-    shadowRadius: 16,
-    elevation: 8,
-  },
+    shadowRadius: elevation,
+    elevation: elevation,
+  };
 };
 
-// Estilos globales reutilizables
-export const GlobalStyles = {
-  // Sistema de espaciado
-  spacing: Spacing,
-  
-  // Sistema de bordes
-  borderRadius: BorderRadius,
-  
-  // Sistema de sombras
-  shadow: Shadows,
-  
-  // Dimensiones de pantalla
-  screen: {
-    width: screenWidth,
-    height: screenHeight,
-    isWeb,
-    isLargeScreen,
+// Sombras para usar como style arrays: <View style={[styles.card, Shadows.sm]}>
+export const Shadows = {
+  sm: createShadow(2),
+  md: createShadow(4),
+  lg: createShadow(8),
+  xl: createShadow(16),
+};
+
+// IMPORTANTE: Usa Shadows como arrays de estilos, NO dentro de StyleSheet.create()
+// ✅ Correcto: <View style={[styles.card, Shadows.sm]}>
+// ❌ Incorrecto: styles: StyleSheet.create({ card: { ...Shadows.sm } })
+
+// Estilos básicos para componentes
+export const ComponentStyles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: KompaColors.background,
   },
   
-  // Containers responsive
-  container: {
-    maxWidth: isWeb ? (isLargeScreen ? 1200 : 768) : '100%',
-    marginHorizontal: 'auto' as const,
+  containerPadded: {
+    flex: 1,
+    backgroundColor: KompaColors.background,
     paddingHorizontal: Spacing.md,
   },
   
-  // Flex helpers
-  flex: {
-    row: { flexDirection: 'row' as const },
-    column: { flexDirection: 'column' as const },
-    center: { 
-      justifyContent: 'center' as const, 
-      alignItems: 'center' as const 
-    },
-    between: { 
-      justifyContent: 'space-between' as const 
-    },
-    around: { 
-      justifyContent: 'space-around' as const 
-    },
-  },
-};
-
-// Estilos específicos para componentes
-export const ComponentStyles = StyleSheet.create({
-  // Botones
   button: {
     backgroundColor: KompaColors.primary,
     paddingHorizontal: Spacing.lg,
@@ -188,7 +147,7 @@ export const ComponentStyles = StyleSheet.create({
     borderRadius: BorderRadius.md,
     alignItems: 'center',
     justifyContent: 'center',
-    ...Shadows.md,
+    minHeight: 44,
   },
   
   buttonSecondary: {
@@ -200,33 +159,28 @@ export const ComponentStyles = StyleSheet.create({
     borderRadius: BorderRadius.md,
     alignItems: 'center',
     justifyContent: 'center',
+    minHeight: 44,
   },
   
-  // Cards
   card: {
     backgroundColor: KompaColors.background,
     borderRadius: BorderRadius.lg,
     padding: Spacing.lg,
     marginVertical: Spacing.sm,
-    ...Shadows.md,
+    borderWidth: 1,
+    borderColor: KompaColors.gray100,
   },
   
-  cardFlat: {
-    backgroundColor: KompaColors.background,
-    borderRadius: BorderRadius.lg,
-    padding: Spacing.lg,
-    marginVertical: Spacing.sm,
+  input: {
     borderWidth: 1,
     borderColor: KompaColors.border,
-  },
-  
-  // Texto
-  textHero: {
-    fontSize: FontSizes.hero,
-    fontWeight: 'bold',
+    borderRadius: BorderRadius.md,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    fontSize: FontSizes.md,
     color: KompaColors.textPrimary,
-    textAlign: 'center',
-    lineHeight: FontSizes.hero * 1.2,
+    backgroundColor: KompaColors.background,
+    minHeight: 44,
   },
   
   textTitle: {
@@ -236,26 +190,67 @@ export const ComponentStyles = StyleSheet.create({
     marginBottom: Spacing.md,
   },
   
-  textSubtitle: {
-    fontSize: FontSizes.lg,
-    color: KompaColors.textSecondary,
-    textAlign: 'center',
-    lineHeight: FontSizes.lg * 1.4,
-  },
-  
   textBody: {
     fontSize: FontSizes.md,
     color: KompaColors.textPrimary,
-    lineHeight: FontSizes.md * 1.5,
   },
   
   textSecondary: {
     fontSize: FontSizes.md,
     color: KompaColors.textSecondary,
-    lineHeight: FontSizes.md * 1.4,
-  },
-  
-  textCenter: {
-    textAlign: 'center',
   },
 });
+
+// Función para combinar estilos de forma segura
+export const combineStyles = (...styles: any[]) => {
+  return StyleSheet.flatten(styles);
+};
+
+// Helpers para layout responsive
+export const Layout = {
+  container: (paddingHorizontal: number = Spacing.md) => ({
+    width: '100%',
+    maxWidth: isWeb ? (isLargeScreen ? 1200 : 768) : screenWidth,
+    marginHorizontal: 'auto' as const,
+    paddingHorizontal,
+  }),
+  
+  row: {
+    flexDirection: 'row' as const,
+    flexWrap: 'wrap' as const,
+  },
+  
+  col: (flex: number = 1) => ({
+    flex,
+    paddingHorizontal: Spacing.xs,
+  }),
+};
+
+// Sistema responsive
+export const responsive = {
+  getValue: (mobileValue: any, webValue?: any, largeScreenValue?: any) => {
+    if (isWeb) {
+      if (isLargeScreen && largeScreenValue !== undefined) {
+        return largeScreenValue;
+      }
+      return webValue !== undefined ? webValue : mobileValue;
+    }
+    return mobileValue;
+  },
+  
+  isWeb,
+  isLargeScreen,
+  screenWidth,
+  screenHeight,
+};
+
+// Exportar todo para compatibilidad
+export const GlobalStyles = {
+  colors: KompaColors,
+  spacing: Spacing,
+  fontSize: FontSizes,
+  borderRadius: BorderRadius,
+  components: ComponentStyles,
+  layout: Layout,
+  responsive,
+};

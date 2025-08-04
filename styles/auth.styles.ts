@@ -1,5 +1,5 @@
 import { Dimensions, StyleSheet } from 'react-native';
-import { FontSizes, KompaColors, Spacing } from '../constants/Styles';
+import { FontSizes, KompaColors, Spacing, Shadows } from '../constants/Styles';
 
 const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
 
@@ -20,11 +20,7 @@ export const authStyles = StyleSheet.create({
     backgroundColor: 'rgba(255, 255, 255, 0.95)',
     borderRadius: 24,
     padding: Spacing.xl,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.1,
-    shadowRadius: 20,
-    elevation: 10,
+
   },
   welcomeContainer: {
     alignItems: 'center',
@@ -72,11 +68,7 @@ export const authStyles = StyleSheet.create({
   inputFocused: {
     borderColor: KompaColors.primary,
     backgroundColor: KompaColors.background,
-    shadowColor: KompaColors.primary,
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
+
   },
   inputError: {
     borderColor: KompaColors.error,
@@ -94,11 +86,7 @@ export const authStyles = StyleSheet.create({
   button: {
     borderRadius: 12,
     overflow: 'hidden',
-    shadowColor: KompaColors.primary,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
-    elevation: 4,
+
   },
   buttonGradient: {
     paddingVertical: Spacing.md,

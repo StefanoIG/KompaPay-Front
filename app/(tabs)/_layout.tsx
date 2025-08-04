@@ -8,13 +8,13 @@ import { Ionicons } from '@expo/vector-icons';
 import { HapticTab } from '@/components/HapticTab';
 import { IconSymbol } from '@/components/ui/IconSymbol';
 import TabBarBackground from '@/components/ui/TabBarBackground';
-import { KompaColors } from '@/constants/Styles';
+import { KompaColors, Shadows } from '@/constants/Styles';
 import { useAuthContext } from '@/providers/AuthProvider'; // 1. Importar el contexto de Auth
 
 export default function TabLayout() {
   const [showQuickNavigation, setShowQuickNavigation] = useState(false);
   const router = useRouter();
-  const { logout } = useAuthContext(); // 2. Obtener la función de logout
+  const { logout, isAuthenticated } = useAuthContext(); // 2. Obtener la función de logout y estado de autenticación
 
   // He movido el menú a su propio componente para mayor claridad
   const QuickNavigationMenu = () => {
@@ -30,7 +30,7 @@ export default function TabLayout() {
     };
 
     return (
-      <View style={styles.quickNavigationContainer}>
+      <View style={[styles.quickNavigationContainer, Shadows.lg]}>
         <View style={styles.quickNavigationGrid}>
           {/* 3. Añadida la navegación real a cada botón */}
           <TouchableOpacity style={styles.quickNavButton} onPress={() => handleNavigate('/(tabs)/dashboard')}>
@@ -41,23 +41,18 @@ export default function TabLayout() {
             <Ionicons name="analytics" size={20} color={KompaColors.info} />
             <Text style={styles.quickNavText}>Reportes</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.quickNavButton} onPress={() => handleNavigate('/colaboracion/tablero_tareas')}>
+          <TouchableOpacity style={styles.quickNavButton} onPress={() => handleNavigate('/boards?groupId=example')}>
             <Ionicons name="albums" size={20} color={KompaColors.secondary} />
             <Text style={styles.quickNavText}>Tableros</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.quickNavButton} onPress={() => handleNavigate('/colaboracion/tablero_tareas')}>
-            <Ionicons name="albums-outline" size={20} color={KompaColors.secondary} />
-            <Text style={styles.quickNavText}>Tableros</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.quickNavButton} onPress={() => handleNavigate('/colaboracion/notas')}>
-            <Ionicons name="document-text-outline" size={20} color={KompaColors.warning} />
-            <Text style={styles.quickNavText}>Notas</Text>
+          <TouchableOpacity style={styles.quickNavButton} onPress={() => handleNavigate('/(tabs)/explore_refactored')}>
+            <Ionicons name="sparkles" size={20} color={KompaColors.success} />
+            <Text style={styles.quickNavText}>Explorar</Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.quickNavButton} onPress={handleLogout}>
             <Ionicons name="log-out" size={20} color={KompaColors.error} />
             <Text style={styles.quickNavText}>Cerrar Sesión</Text>
           </TouchableOpacity>
-
         </View>
       </View>
     );
@@ -73,8 +68,17 @@ export default function TabLayout() {
           tabBarButton: HapticTab,
           tabBarBackground: TabBarBackground,
           tabBarStyle: Platform.select({
-            ios: { position: 'absolute', backgroundColor: 'transparent' },
-            default: { backgroundColor: KompaColors.background, borderTopColor: KompaColors.gray200 },
+            ios: { 
+              position: 'absolute', 
+              backgroundColor: 'transparent' 
+            },
+            web: { 
+              display: 'none' 
+            }, // Ocultar en web porque usamos sidebar
+            default: { 
+              backgroundColor: KompaColors.background, 
+              borderTopColor: KompaColors.gray200 
+            },
           }),
         }}
       >
@@ -84,20 +88,66 @@ export default function TabLayout() {
           options={{
             title: 'Inicio',
             tabBarIcon: ({ color, focused }) => (
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-                <IconSymbol size={28} name={focused ? 'house.fill' : 'house'} color={color} />
-                {Platform.OS === 'web' && (
-                  <TouchableOpacity
-                    onPress={() => setShowQuickNavigation(!showQuickNavigation)}
-                    style={{ padding: 2 }}
-                  >
-                    <Text style={{ fontSize: 16, color, transform: [{ rotate: showQuickNavigation ? '180deg' : '0deg' }] }}>⏷</Text>
-                  </TouchableOpacity>
-                )}
-              </View>
+              <IconSymbol size={28} name={focused ? 'house.fill' : 'house'} color={color} />
             ),
           }}
         />
+        
+        {/* Solo mostrar explorar si NO está autenticado */}
+        {!isAuthenticated && (
+          <Tabs.Screen
+            name="explore_refactored"
+            options={{
+              title: 'Explorar',
+              tabBarIcon: ({ color, focused }) => (
+                <IconSymbol size={28} name={focused ? 'sparkles' : 'sparkles'} color={color} />
+              ),
+            }}
+          />
+        )}
+        
+        {/* Mostrar estas pestañas solo si está autenticado */}
+        {isAuthenticated && (
+          <>
+            <Tabs.Screen
+              name="groups"
+              options={{
+                title: 'Grupos',
+                tabBarIcon: ({ color, focused }) => (
+                  <IconSymbol size={28} name={focused ? 'person.3.fill' : 'person.3'} color={color} />
+                ),
+              }}
+            />
+            <Tabs.Screen
+              name="expenses"
+              options={{
+                title: 'Gastos',
+                tabBarIcon: ({ color, focused }) => (
+                  <IconSymbol size={28} name={focused ? 'creditcard.fill' : 'creditcard'} color={color} />
+                ),
+              }}
+            />
+            <Tabs.Screen
+              name="notes"
+              options={{
+                title: 'Notas',
+                tabBarIcon: ({ color, focused }) => (
+                  <IconSymbol size={28} name={focused ? 'note.text' : 'note.text'} color={color} />
+                ),
+              }}
+            />
+            <Tabs.Screen
+              name="notifications"
+              options={{
+                title: 'Notificaciones',
+                tabBarIcon: ({ color, focused }) => (
+                  <IconSymbol size={28} name={focused ? 'bell.fill' : 'bell'} color={color} />
+                ),
+              }}
+            />
+          </>
+        )}
+        
         <Tabs.Screen
           name="reportes"
           options={{
@@ -107,24 +157,15 @@ export default function TabLayout() {
             ),
           }}
         />
-        <Tabs.Screen
-          name="explore"
-          options={{
-            title: 'Explorar',
-            tabBarIcon: ({ color, focused }) => (
-              <IconSymbol size={28} name={focused ? 'sparkles' : 'sparkles'} color={color} />
-            ),
-          }}
-        />
 
-        {/* 5. Ocultar la pantalla 'index' y otras que no queramos en la barra de pestañas */}
+        {/* 5. Ocultar las pantallas que no queramos en la barra de pestañas */}
         <Tabs.Screen name="index" options={{ href: null }} />
         <Tabs.Screen name="explore2" options={{ href: null }} />
-        <Tabs.Screen name="dashboard" options={{ href: null }} />
-        <Tabs.Screen name="explore_refactored" options={{ href: null }} />
-
+        <Tabs.Screen name="dashboard_refactored" options={{ href: null }} />
+        <Tabs.Screen name="explore" options={{ href: null }} />
+        <Tabs.Screen name="boards" options={{ href: null }} />
       </Tabs>
-      {Platform.OS === 'web' && showQuickNavigation && <QuickNavigationMenu />}
+      {Platform.OS !== 'web' && showQuickNavigation && <QuickNavigationMenu />}
     </>
   );
 }
@@ -138,17 +179,6 @@ const styles = StyleSheet.create({
     backgroundColor: 'white',
     borderRadius: 12,
     padding: 16,
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.15,
-        shadowRadius: 8,
-      },
-      android: {
-        elevation: 8,
-      },
-    }),
   },
   quickNavigationGrid: {
     flexDirection: 'row',

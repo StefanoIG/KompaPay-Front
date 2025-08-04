@@ -1,18 +1,21 @@
 // app/(auth)/register.tsx
 
 import React, { useState } from 'react';
-import { useAuthContext } from '@/providers/AuthProvider'; // 1. Usar el nuevo AuthProvider
+import { useAuthContext } from '@/providers/AuthProvider';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { Alert, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { Alert, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View, ActivityIndicator } from 'react-native';
 import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Ionicons } from '@expo/vector-icons';
+// ✅ Importar sin Shadows
+import { KompaColors, Spacing, FontSizes, BorderRadius } from '@/constants/Styles';
 
 export default function RegisterScreen() {
-    const { register, isLoading: isAuthLoading } = useAuthContext(); // Usar el estado de carga del hook
+    const { register, isLoading: isAuthLoading } = useAuthContext();
     const router = useRouter();
-    const insets = useSafeAreaInsets(); // Hook para manejar el notch/isla dinámica
+    const insets = useSafeAreaInsets();
 
     const [formData, setFormData] = useState({
         name: '',
@@ -38,22 +41,18 @@ export default function RegisterScreen() {
 
         try {
             const user = await register({
-                // 2. Corregido: 'name' en lugar de 'nombre' para coincidir con la API
                 name: formData.name.trim(),
                 email: formData.email.trim(),
                 password: formData.password
             });
 
             if (user) {
-                // 3. Redirección a dashboard_refactored al tener éxito
-                router.replace('/(tabs)/dashboard_refactored');
+                router.replace('/(tabs)/dashboard');
             } else {
-                // El error ya es manejado por el hook useApi, pero podemos poner un mensaje genérico
                 Alert.alert('Error de Registro', 'No se pudo crear la cuenta. Por favor, intenta de nuevo.');
             }
 
         } catch (error: any) {
-            // Este catch es por si la promesa del hook es rechazada (aunque useApi ya maneja errores)
             console.error('Register error:', error);
             Alert.alert('Error Inesperado', 'Ocurrió un error. Verifica tu conexión a internet.');
         }
@@ -67,7 +66,7 @@ export default function RegisterScreen() {
         <View style={styles.container}>
             <StatusBar style="light" />
             <LinearGradient
-                colors={['#2563EB', '#10B981']}
+                colors={[KompaColors.primary, KompaColors.secondary]}
                 style={styles.background}
             >
                 <KeyboardAvoidingView
@@ -75,21 +74,115 @@ export default function RegisterScreen() {
                     style={styles.keyboardAvoidingView}
                 >
                     <ScrollView
-                        contentContainerStyle={[styles.scrollContent, { paddingTop: insets.top + 32, paddingBottom: insets.bottom }]}
+                        contentContainerStyle={[
+                            styles.scrollContent, 
+                            { 
+                                paddingTop: insets.top + Spacing.xl, 
+                                paddingBottom: insets.bottom 
+                            }
+                        ]}
                         showsVerticalScrollIndicator={false}
                     >
-                        {/* El resto del JSX (Vistas, TextInputs, etc.) permanece igual */}
-                        {/* ... */}
-                         <TouchableOpacity 
-                             style={[styles.registerButton, isAuthLoading && styles.registerButtonDisabled]}
-                             onPress={handleRegister}
-                             disabled={isAuthLoading}
-                         >
-                             <Text style={styles.registerButtonText}>
-                                 {isAuthLoading ? 'Creando cuenta...' : 'Crear Cuenta'}
-                             </Text>
-                         </TouchableOpacity>
-                        {/* ... */}
+                        <Animated.View 
+                            entering={FadeInUp.delay(200).springify()}
+                            style={styles.logoContainer}
+                        >
+                            <View style={styles.logoIcon}>
+                                <Ionicons name="wallet" size={32} color="white" />
+                            </View>
+                            <Text style={styles.logo}>KompaPay</Text>
+                            <Text style={styles.subtitle}>Únete a la comunidad financiera</Text>
+                        </Animated.View>
+
+                        <Animated.View 
+                            entering={FadeInDown.delay(400).springify()}
+                            style={styles.formContainer}
+                        >
+                            <Text style={styles.formTitle}>Crear Cuenta</Text>
+                            <Text style={styles.formDescription}>
+                                Completa los siguientes datos para comenzar
+                            </Text>
+
+                            <View style={styles.inputContainer}>
+                                <Text style={styles.inputLabel}>Nombre completo</Text>
+                                <TextInput
+                                    style={styles.input}
+                                    placeholder="Tu nombre completo"
+                                    placeholderTextColor={KompaColors.gray400}
+                                    value={formData.name}
+                                    onChangeText={(value) => updateFormData('name', value)}
+                                    autoCapitalize="words"
+                                />
+                            </View>
+
+                            <View style={styles.inputContainer}>
+                                <Text style={styles.inputLabel}>Correo electrónico</Text>
+                                <TextInput
+                                    style={styles.input}
+                                    placeholder="tu@email.com"
+                                    placeholderTextColor={KompaColors.gray400}
+                                    value={formData.email}
+                                    onChangeText={(value) => updateFormData('email', value)}
+                                    keyboardType="email-address"
+                                    autoCapitalize="none"
+                                />
+                            </View>
+
+                            <View style={styles.inputContainer}>
+                                <Text style={styles.inputLabel}>Contraseña</Text>
+                                <TextInput
+                                    style={styles.input}
+                                    placeholder="Mínimo 6 caracteres"
+                                    placeholderTextColor={KompaColors.gray400}
+                                    value={formData.password}
+                                    onChangeText={(value) => updateFormData('password', value)}
+                                    secureTextEntry
+                                />
+                            </View>
+
+                            <View style={styles.inputContainer}>
+                                <Text style={styles.inputLabel}>Confirmar contraseña</Text>
+                                <TextInput
+                                    style={styles.input}
+                                    placeholder="Repite tu contraseña"
+                                    placeholderTextColor={KompaColors.gray400}
+                                    value={formData.confirmPassword}
+                                    onChangeText={(value) => updateFormData('confirmPassword', value)}
+                                    secureTextEntry
+                                />
+                            </View>
+
+                            <TouchableOpacity 
+                                style={[styles.registerButton, isAuthLoading && styles.registerButtonDisabled]}
+                                onPress={handleRegister}
+                                disabled={isAuthLoading}
+                            >
+                                {isAuthLoading ? (
+                                    <ActivityIndicator color="white" />
+                                ) : (
+                                    <Text style={styles.registerButtonText}>Crear Cuenta</Text>
+                                )}
+                            </TouchableOpacity>
+
+                            <View style={styles.termsContainer}>
+                                <Text style={styles.termsText}>
+                                    Al crear una cuenta, aceptas nuestros{' '}
+                                    <Text style={styles.termsLink}>Términos de Servicio</Text>
+                                    {' '}y{' '}
+                                    <Text style={styles.termsLink}>Política de Privacidad</Text>
+                                </Text>
+                            </View>
+                        </Animated.View>
+
+                        <Animated.View 
+                            entering={FadeInDown.delay(600).springify()}
+                            style={styles.loginContainer}
+                        >
+                            <Text style={styles.loginText}>¿Ya tienes una cuenta? </Text>
+                            <TouchableOpacity onPress={() => router.push('/(auth)/login')}>
+                                <Text style={styles.loginLink}>Inicia Sesión</Text>
+                            </TouchableOpacity>
+                        </Animated.View>
                     </ScrollView>
                 </KeyboardAvoidingView>
             </LinearGradient>
@@ -98,112 +191,134 @@ export default function RegisterScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  background: {
-    flex: 1,
-  },
-  keyboardAvoidingView: {
-    flex: 1,
-  },
-  scrollContent: {
-    flexGrow: 1,
-    justifyContent: 'center',
-    paddingHorizontal: 32,
-    paddingVertical: 32,
-  },
-  logoContainer: {
-    alignItems: 'center',
-    marginBottom: 48,
-  },
-  logo: {
-    fontSize: 32,
-    fontWeight: 'bold',
-    color: '#F9FAFB',
-    marginBottom: 8,
-    textAlign: 'center',
-  },
-  subtitle: {
-    fontSize: 16,
-    color: '#F9FAFB',
-    opacity: 0.8,
-    textAlign: 'center',
-  },
-  formContainer: {
-    backgroundColor: '#F9FAFB',
-    borderRadius: 12,
-    padding: 32,
-    marginBottom: 32,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
+    container: {
+        flex: 1,
     },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  inputContainer: {
-    marginBottom: 24,
-  },
-  inputLabel: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#111827',
-    marginBottom: 4,
-  },
-  input: {
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-    borderRadius: 8,
-    padding: 16,
-    fontSize: 16,
-    color: '#111827',
-    backgroundColor: '#F3F4F6',
-  },
-  registerButton: {
-    backgroundColor: '#2563EB',
-    borderRadius: 8,
-    padding: 16,
-    alignItems: 'center',
-    marginTop: 16,
-  },
-  registerButtonDisabled: {
-    opacity: 0.6,
-  },
-  registerButtonText: {
-    color: '#F9FAFB',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  termsContainer: {
-    marginTop: 16,
-    paddingTop: 16,
-  },
-  termsText: {
-    fontSize: 12,
-    color: '#6B7280',
-    textAlign: 'center',
-    lineHeight: 18,
-  },
-  termsLink: {
-    color: '#2563EB',
-    fontWeight: '600',
-  },
-  loginContainer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  loginText: {
-    color: '#F9FAFB',
-    fontSize: 14,
-  },
-  loginLink: {
-    color: '#F9FAFB',
-    fontSize: 14,
-    fontWeight: '600',
-    textDecorationLine: 'underline',
-  },
+    background: {
+        flex: 1,
+    },
+    keyboardAvoidingView: {
+        flex: 1,
+    },
+    scrollContent: {
+        flexGrow: 1,
+        justifyContent: 'center',
+        paddingHorizontal: Spacing.xl,
+        paddingVertical: Spacing.xl,
+    },
+    logoContainer: {
+        alignItems: 'center',
+        marginBottom: Spacing.xxxl,
+    },
+    logoIcon: {
+        width: 64,
+        height: 64,
+        borderRadius: BorderRadius.full,
+        backgroundColor: 'rgba(255, 255, 255, 0.2)',
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginBottom: Spacing.md,
+    },
+    logo: {
+        fontSize: FontSizes.xxxl,
+        fontWeight: 'bold',
+        color: KompaColors.background,
+        marginBottom: Spacing.sm,
+        textAlign: 'center',
+    },
+    subtitle: {
+        fontSize: FontSizes.md,
+        color: KompaColors.background,
+        opacity: 0.9,
+        textAlign: 'center',
+    },
+    formContainer: {
+        backgroundColor: KompaColors.background,
+        borderRadius: BorderRadius.xl,
+        padding: Spacing.xl,
+        marginBottom: Spacing.xl,
+        // Sombra sutil con borde en lugar de shadow
+        borderWidth: 1,
+        borderColor: KompaColors.gray100,
+    },
+    formTitle: {
+        fontSize: FontSizes.xl,
+        fontWeight: 'bold',
+        color: KompaColors.textPrimary,
+        textAlign: 'center',
+        marginBottom: Spacing.xs,
+    },
+    formDescription: {
+        fontSize: FontSizes.sm,
+        color: KompaColors.textSecondary,
+        textAlign: 'center',
+        marginBottom: Spacing.lg,
+    },
+    inputContainer: {
+        marginBottom: Spacing.lg,
+    },
+    inputLabel: {
+        fontSize: FontSizes.sm,
+        fontWeight: '600',
+        color: KompaColors.textPrimary,
+        marginBottom: Spacing.sm,
+    },
+    input: {
+        borderWidth: 1,
+        borderColor: KompaColors.gray200,
+        borderRadius: BorderRadius.md,
+        paddingHorizontal: Spacing.md,
+        paddingVertical: Spacing.md,
+        fontSize: FontSizes.md,
+        color: KompaColors.textPrimary,
+        backgroundColor: KompaColors.gray50,
+        minHeight: 50,
+    },
+    registerButton: {
+        backgroundColor: KompaColors.primary,
+        borderRadius: BorderRadius.md,
+        paddingVertical: Spacing.md,
+        alignItems: 'center',
+        marginTop: Spacing.md,
+        minHeight: 50,
+        justifyContent: 'center',
+    },
+    registerButtonDisabled: {
+        opacity: 0.7,
+    },
+    registerButtonText: {
+        color: KompaColors.background,
+        fontSize: FontSizes.md,
+        fontWeight: '600',
+    },
+    termsContainer: {
+        marginTop: Spacing.md,
+        paddingTop: Spacing.md,
+    },
+    termsText: {
+        fontSize: FontSizes.xs,
+        color: KompaColors.textSecondary,
+        textAlign: 'center',
+        lineHeight: 18,
+    },
+    termsLink: {
+        color: KompaColors.primary,
+        fontWeight: '600',
+    },
+    loginContainer: {
+        flexDirection: 'row',
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    loginText: {
+        color: KompaColors.background,
+        fontSize: FontSizes.sm,
+        opacity: 0.9,
+    },
+    loginLink: {
+        color: KompaColors.background,
+        fontSize: FontSizes.sm,
+        fontWeight: '600',
+        textDecorationLine: 'underline',
+    },
 });

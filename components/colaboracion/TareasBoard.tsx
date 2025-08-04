@@ -1,6 +1,21 @@
 import React from 'react';
 import { FlatList, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import { Tablero, Tarea } from '../../hooks/react-native-hooks/types';
+import { Shadows } from '@/constants/Styles';
+
+// Tipos temporales hasta que se definan en config
+interface Tablero {
+  id: string;
+  nombre: string;
+  color: string;
+}
+
+interface Tarea {
+  id: string;
+  titulo: string;
+  descripcion: string;
+  tableroId: string;
+  estado: string;
+}
 
 interface TareasBoardProps {
   tableros: Tablero[];
@@ -48,7 +63,7 @@ export const TareasBoard: React.FC<TareasBoardProps> = ({ tableros, tareasPorTab
 
 const styles = StyleSheet.create({
   container: { flex: 1, flexDirection: 'row', padding: 8 },
-  tablero: { backgroundColor: '#fff', borderRadius: 8, marginRight: 12, padding: 8, minWidth: 220, elevation: 2 },
+  tablero: { backgroundColor: '#fff', borderRadius: 8, marginRight: 12, padding: 8, minWidth: 220 },
   tableroTitulo: { fontWeight: 'bold', fontSize: 16, marginBottom: 8 },
   tarea: { backgroundColor: '#f3f4f6', borderRadius: 6, padding: 8, marginBottom: 8 },
   tareaTitulo: { fontSize: 15, fontWeight: '500' },

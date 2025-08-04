@@ -6,19 +6,19 @@ const __DEV__ = process.env.NODE_ENV === 'development';
 // Configuraciones por entorno
 const CONFIG = {
   development: {
-    API_URL: 'http://localhost:8000/api',
+    API_URL: 'https://kompapay.onrender.com/api',
     PUSHER: {
       key: '78f7dc9da405f17d9e93', // Tu key real de Pusher
       cluster: 'us2',
-      authEndpoint: 'http://localhost:8000/broadcasting/auth',
+      authEndpoint: 'https://kompapay.onrender.com/broadcasting/auth',
     }
   },
   production: {
-    API_URL: 'https://tu-app.onrender.com/api',
+    API_URL: 'https://kompapay.onrender.com/api',
     PUSHER: {
       key: '78f7dc9da405f17d9e93', // La misma key para producción
       cluster: 'us2',
-      authEndpoint: 'https://tu-app.onrender.com/broadcasting/auth',
+      authEndpoint: 'https://kompapay.onrender.com/broadcasting/auth',
     }
   }
 };
@@ -277,21 +277,30 @@ export interface ReorderRequest {
 
 export interface LoginRequest {
   email: string;
-  password_digest: string; // O el nombre del campo que use tu backend
+  password: string; // Cambiado de password_digest a password
 }
 
 export interface RegisterRequest {
   name: string;
   email: string;
-  password_digest: string;
+  password: string; // Cambiado de password_digest a password
 }
 
 export interface Grupo {
   id: string;
   nombre: string;
   descripcion?: string;
+  creado_por: string;
   id_publico: string;
+  fecha_creacion: string;
+  created_at: string;
+  updated_at: string;
+  creador?: User;
   miembros?: User[];
+  pivot?: {
+    user_id: string;
+    grupo_id: string;
+  };
 }
 
 export interface CreateGrupoRequest {
@@ -485,6 +494,18 @@ export interface AuditLog {
   details?: Record<string, any>; // Para guardar datos adicionales, como el nombre del grupo creado
   created_at: string;
 }
+
+// Interfaces para eventos de notificaciones
+export interface Notification {
+  id: string;
+  user_id: string;
+  type: string; // Ej: 'expense_created', 'group_joined'
+  message: string;
+  isRead: boolean;
+  createdAt: string;
+}
+
+
 
 // --- Interfaces para eventos de typing ---
 

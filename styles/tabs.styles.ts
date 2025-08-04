@@ -1,5 +1,5 @@
 import { Dimensions, StyleSheet } from 'react-native';
-import { FontSizes, KompaColors, Spacing } from '../constants/Styles';
+import { FontSizes, KompaColors, Spacing, Shadows } from '../constants/Styles';
 
 const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
 
@@ -42,11 +42,6 @@ export const tabsStyles = StyleSheet.create({
     padding: Spacing.xs,
     marginHorizontal: Spacing.md,
     marginBottom: Spacing.md,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
   },
   tabButton: {
     flex: 1,
@@ -58,11 +53,6 @@ export const tabsStyles = StyleSheet.create({
   },
   tabButtonActive: {
     backgroundColor: KompaColors.primary,
-    shadowColor: KompaColors.primary,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-    elevation: 2,
   },
   tabText: {
     fontSize: FontSizes.xs,
@@ -87,11 +77,6 @@ export const tabsStyles = StyleSheet.create({
     borderRadius: 16,
     padding: Spacing.lg,
     marginBottom: Spacing.md,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 3,
   },
   overviewCardGradient: {
     borderRadius: 16,
@@ -149,11 +134,6 @@ export const tabsStyles = StyleSheet.create({
     borderRadius: 12,
     padding: Spacing.md,
     marginBottom: Spacing.md,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
   },
   groupHeader: {
     flexDirection: 'row',
@@ -198,11 +178,7 @@ export const tabsStyles = StyleSheet.create({
     right: 20,
     borderRadius: 28,
     overflow: 'hidden',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 8,
+
   },
   fabGradient: {
     width: 56,
@@ -219,11 +195,7 @@ export const tabsStyles = StyleSheet.create({
     borderRadius: 12,
     padding: Spacing.md,
     marginBottom: Spacing.md,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
+
   },
   expenseHeader: {
     flexDirection: 'row',
@@ -281,11 +253,7 @@ export const tabsStyles = StyleSheet.create({
     padding: Spacing.lg,
     width: '100%',
     maxWidth: 400,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.25,
-    shadowRadius: 20,
-    elevation: 15,
+
   },
   modalHeader: {
     alignItems: 'center',
@@ -363,11 +331,7 @@ export const tabsStyles = StyleSheet.create({
     backgroundColor: KompaColors.background,
     borderRadius: 12,
     marginBottom: Spacing.md,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
+
   },
   profileSectionHeader: {
     padding: Spacing.md,

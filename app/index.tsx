@@ -1,4 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import { LinearGradient } from 'expo-linear-gradient';
+import { useRouter } from 'expo-router';
+import { StatusBar } from 'expo-status-bar';
+import React, { useEffect } from 'react';
 import {
     Platform,
     ScrollView,
@@ -7,9 +10,6 @@ import {
     View,
     useWindowDimensions,
 } from 'react-native';
-import { useRouter } from 'expo-router';
-import { StatusBar } from 'expo-status-bar';
-import { LinearGradient } from 'expo-linear-gradient';
 import Animated, {
     FadeIn,
     FadeInLeft,
@@ -23,6 +23,7 @@ import Animated, {
 
 import { ComponentStyles, KompaColors } from '../constants/Styles';
 import { homeStyles } from '../styles/home.styles';
+import { useAuthContext } from '@/providers/AuthProvider';
 
 // --- Sub-componentes para mantener el código limpio ---
 
@@ -92,6 +93,7 @@ export default function HomePage() {
     // Hooks de React y Expo
     const router = useRouter();
     const { width } = useWindowDimensions();
+    const { isAuthenticated } = useAuthContext();
     const isWeb = Platform.OS === 'web';
     const isLargeScreen = width > 768;
 
@@ -117,11 +119,17 @@ export default function HomePage() {
     });
 
     const handleGetStarted = () => {
-        router.push('/(auth)/login');
+        console.log('handleGetStarted called', { isAuthenticated });
+        if (isAuthenticated) {
+            router.push('/dashboard');
+        } else {
+            router.push('/(auth)/login');
+        }
     };
 
     const handleViewDemo = () => {
-        router.push('/(tabs)/explore');
+        console.log('handleViewDemo called');
+        router.push('/explore');
     };
 
     return (
@@ -146,13 +154,13 @@ export default function HomePage() {
                         </Animated.View>
                         <Animated.Text
                             entering={FadeInUp.delay(400).duration(800)}
-                            style={[ComponentStyles.textHero, homeStyles.heroTitle]}
+                            style={[ComponentStyles.textTitle, homeStyles.heroTitle]}
                         >
                             KompaPay
                         </Animated.Text>
                         <Animated.Text
                             entering={FadeInUp.delay(600).duration(800)}
-                            style={[ComponentStyles.textSubtitle, homeStyles.heroSubtitle]}
+                            style={[ComponentStyles.textSecondary, homeStyles.heroSubtitle]}
                         >
                             La forma más inteligente de gestionar gastos compartidos
                         </Animated.Text>
@@ -164,7 +172,9 @@ export default function HomePage() {
                                 style={[ComponentStyles.button, homeStyles.primaryButton]}
                                 onPress={handleGetStarted}
                             >
-                                <Text style={homeStyles.primaryButtonText}>Comenzar Ahora</Text>
+                                <Text style={homeStyles.primaryButtonText}>
+                                    {isAuthenticated ? 'Ir al Dashboard' : 'Comenzar Ahora'}
+                                </Text>
                             </TouchableOpacity>
                             <TouchableOpacity
                                 style={[ComponentStyles.buttonSecondary, homeStyles.secondaryButton]}
@@ -235,14 +245,16 @@ export default function HomePage() {
                         <Text style={[ComponentStyles.textTitle, homeStyles.ctaTitle]}>
                             ¿Listo para simplificar tus gastos?
                         </Text>
-                        <Text style={[ComponentStyles.textSubtitle, homeStyles.ctaSubtitle]}>
+                        <Text style={[ComponentStyles.textSecondary, homeStyles.ctaSubtitle]}>
                             Únete a miles de usuarios que ya gestionan sus gastos de forma inteligente
                         </Text>
                         <TouchableOpacity
                             style={[ComponentStyles.button, homeStyles.ctaButton]}
                             onPress={handleGetStarted}
                         >
-                            <Text style={homeStyles.primaryButtonText}>Comenzar Gratis</Text>
+                            <Text style={homeStyles.primaryButtonText}>
+                                {isAuthenticated ? 'Ir al Dashboard' : 'Comenzar Gratis'}
+                            </Text>
                         </TouchableOpacity>
                     </Animated.View>
                 </View>

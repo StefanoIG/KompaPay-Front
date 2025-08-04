@@ -1,7 +1,7 @@
 // src/hooks/useAuth.ts
 
 import { useState, useCallback, useEffect } from 'react';
-import * as SecureStore from 'expo-secure-store';
+import { secureStorage } from './secureStorage';
 import {
     User,
     LoginRequest,
@@ -31,8 +31,8 @@ export const useAuth = () => {
     const loadAuthFromStorage = useCallback(async () => {
         try {
             const [storedToken, storedUser] = await Promise.all([
-                SecureStore.getItemAsync(STORAGE_KEYS.AUTH_TOKEN),
-                SecureStore.getItemAsync(STORAGE_KEYS.USER_DATA),
+                secureStorage.getItemAsync(STORAGE_KEYS.AUTH_TOKEN),
+                secureStorage.getItemAsync(STORAGE_KEYS.USER_DATA),
             ]);
 
             if (storedToken && storedUser) {
@@ -51,8 +51,8 @@ export const useAuth = () => {
     const setAndStoreAuth = useCallback(async (userData: User, authToken: string) => {
         try {
             await Promise.all([
-                SecureStore.setItemAsync(STORAGE_KEYS.AUTH_TOKEN, authToken),
-                SecureStore.setItemAsync(STORAGE_KEYS.USER_DATA, JSON.stringify(userData)),
+                secureStorage.setItemAsync(STORAGE_KEYS.AUTH_TOKEN, authToken),
+                secureStorage.setItemAsync(STORAGE_KEYS.USER_DATA, JSON.stringify(userData)),
             ]);
             setUser(userData);
             setToken(authToken);
@@ -66,10 +66,10 @@ export const useAuth = () => {
     const clearAuth = useCallback(async () => {
         try {
             await Promise.all([
-                SecureStore.deleteItemAsync(STORAGE_KEYS.AUTH_TOKEN),
-                SecureStore.deleteItemAsync(STORAGE_KEYS.USER_DATA),
-                SecureStore.deleteItemAsync(STORAGE_KEYS.OFFLINE_ACTIONS),
-                SecureStore.deleteItemAsync(STORAGE_KEYS.LAST_SYNC),
+                secureStorage.deleteItemAsync(STORAGE_KEYS.AUTH_TOKEN),
+                secureStorage.deleteItemAsync(STORAGE_KEYS.USER_DATA),
+                secureStorage.deleteItemAsync(STORAGE_KEYS.OFFLINE_ACTIONS),
+                secureStorage.deleteItemAsync(STORAGE_KEYS.LAST_SYNC),
             ]);
         } catch (error) {
             console.error('Error clearing auth data:', error);
@@ -87,28 +87,85 @@ export const useAuth = () => {
     const login = useCallback(async (credentials: LoginRequest): Promise<User | null> => {
         setIsLoading(true);
         try {
+            console.log('Login attempt with:', { email: credentials.email, url: `${API_CONFIG.BASE_URL}${ENDPOINTS.AUTH.LOGIN}` });
+            
             const response = await fetch(`${API_CONFIG.BASE_URL}${ENDPOINTS.AUTH.LOGIN}`, {
                 method: 'POST',
                 headers: API_CONFIG.DEFAULT_HEADERS,
                 body: JSON.stringify(credentials),
             });
             
-            const data: APIResponse<AuthResponse> = await response.json();
-
-            if (!response.ok || !data.success) {
-                throw new Error(data.message || 'Credenciales inválidas');
-            }
+            console.log('Login response status:', response.status);
+            console.log('Login response ok:', response.ok);
             
-            if (!data.data) {
-                throw new Error('Respuesta del servidor inválida');
+            // Intentar parsear la respuesta
+            let data: any; // Cambiar tipo para manejar la respuesta de debug
+            try {
+                data = await response.json();
+                console.log('Login response data:', data);
+            } catch (parseError) {
+                console.error('Error parsing response JSON:', parseError);
+                throw new Error('Respuesta del servidor inválida - no es JSON válido');
             }
 
-            const { user: userData, token: authToken } = data.data;
-            await setAndStoreAuth(userData, authToken);
-            return userData;
-        } catch (error) {
+            // Verificar si es el endpoint debug/login (respuesta diferente)
+            if (data.usuario_encontrado !== undefined) {
+                // Respuesta del endpoint /debug/login
+                if (!response.ok || !data.usuario_encontrado || !data.password_correcto) {
+                    const errorMessage = 'Credenciales inválidas';
+                    console.error('Login error from debug endpoint:', errorMessage);
+                    throw new Error(errorMessage);
+                }
+                
+                if (!data.user_data || !data.user_data.id) {
+                    throw new Error('Respuesta del servidor inválida - datos de usuario faltantes');
+                }
+
+                // Adaptar la respuesta del debug endpoint al formato esperado
+                const userData: User = {
+                    id: data.user_data.id,
+                    name: data.user_data.nombre || data.nombre,
+                    email: data.user_data.email || data.email,
+                };
+                
+                // Para debug, generar un token temporal (el endpoint debug no devuelve token)
+                const authToken = `debug_token_${userData.id}_${Date.now()}`;
+                
+                await setAndStoreAuth(userData, authToken);
+                return userData;
+            } else {
+                // Respuesta del endpoint normal /login
+                if (!response.ok || !data.success) {
+                    const errorMessage = data.message || `Error del servidor (${response.status})`;
+                    console.error('Login error from server:', errorMessage);
+                    throw new Error(errorMessage);
+                }
+                
+                if (!data.data) {
+                    throw new Error('Respuesta del servidor inválida - datos faltantes');
+                }
+
+                const { user: userData, token: authToken } = data.data;
+                await setAndStoreAuth(userData, authToken);
+                return userData;
+            }
+        } catch (error: any) {
             console.error("Login failed:", error);
-            throw error; // Propagar el error para que el provider lo maneje
+            console.error("Error type:", error.constructor.name);
+            console.error("Error message:", error.message);
+            
+            // Mejorar el manejo de errores específicos
+            if (error.name === 'TypeError' && error.message.includes('Network request failed')) {
+                throw new Error('Error de conexión - verifica tu conexión a internet');
+            } else if (error.name === 'TypeError' && error.message.includes('fetch')) {
+                throw new Error('Error de red - no se puede conectar al servidor');
+            } else if (error.message) {
+                // Si ya tiene un mensaje específico, usarlo
+                throw error;
+            } else {
+                // Error genérico como último recurso
+                throw new Error('Error desconocido durante el login');
+            }
         } finally {
             setIsLoading(false);
         }

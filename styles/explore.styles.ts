@@ -1,5 +1,5 @@
 import { Dimensions, StyleSheet } from 'react-native';
-import { FontSizes, KompaColors, Spacing } from '../constants/Styles';
+import { FontSizes, KompaColors, Spacing, Shadows } from '../constants/Styles';
 
 const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
 
@@ -34,11 +34,7 @@ export const exploreStyles = StyleSheet.create({
   },
   demoTabActive: {
     backgroundColor: KompaColors.background,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+
   },
   demoTabText: {
     fontSize: FontSizes.xs,

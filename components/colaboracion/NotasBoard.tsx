@@ -1,6 +1,7 @@
 import React from 'react';
 import { FlatList, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import { Nota } from '../../hooks/react-native-hooks/types';
+import { Nota } from '@/config/config';
+import { Shadows } from '@/constants/Styles';
 
 interface NotasBoardProps {
   notas: Nota[];
@@ -31,7 +32,7 @@ export const NotasBoard: React.FC<NotasBoardProps> = ({ notas, onNotaPress, onNu
 
 const styles = StyleSheet.create({
   container: { flex: 1, padding: 8 },
-  nota: { backgroundColor: '#fffbe7', borderRadius: 8, padding: 10, marginBottom: 10, elevation: 1 },
+  nota: { backgroundColor: '#fffbe7', borderRadius: 8, padding: 10, marginBottom: 10 },
   notaTitulo: { fontWeight: 'bold', fontSize: 15, marginBottom: 4 },
   notaContenido: { fontSize: 13, color: '#555' },
   nuevaNotaBtn: { marginTop: 12, padding: 10, backgroundColor: '#fef08a', borderRadius: 8, alignItems: 'center' },

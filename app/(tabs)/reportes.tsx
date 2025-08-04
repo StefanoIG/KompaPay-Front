@@ -1,40 +1,72 @@
 // app/(tabs)/reportes.tsx
-
 import React, { useState, useCallback } from 'react';
-import { View, Text, ScrollView, Button, ActivityIndicator, Alert, StyleSheet } from 'react-native';
+import {
+    View,
+    Text,
+    StyleSheet,
+    ScrollView,
+    TouchableOpacity,
+    ActivityIndicator,
+    Alert,
+    Button,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { Ionicons } from '@expo/vector-icons';
 
-// 1. Importar los hooks de datos refactorizados
-import { useReportes } from '@/hooks/useReportes';
-import { FiltrosReporte, ResumenReporte } from '@/config/config'; 
+// 1. Importar los hooks de datos que ya creamos
+import { useReportes, FiltrosReporte, ResumenReporte } from '@/hooks/useReportes';
+import { useGroups } from '@/hooks/useGroups';
 
-// 2. Importar estilos y constantes
-import { tabsStyles } from '@/styles/tabs.styles';
-import { KompaColors } from '@/constants/Styles';
+// 2. Importar constantes y utilidades
+import { KompaColors, Shadows } from '@/constants/Styles';
+import { formatCurrency } from '@/utils/formatters';
 
-// (Opcional) Componentes de UI para filtros
-// import { GroupSelector } from '@/components/GroupSelector';
-// import { DateRangePicker } from '@/components/DateRangePicker';
+// --- Sub-Componentes para un código más limpio ---
 
-export default function ReportesScreen() {
-    // 3. Consumir los hooks de datos directamente
+const SummaryCard = ({ icon, title, value, trend }) => (
+    <View style={styles.summaryCard}>
+        <View style={styles.summaryHeader}>
+            <Text style={styles.summaryTitle}>{title}</Text>
+            <Ionicons name={icon} size={16} color={KompaColors.textSecondary} />
+        </View>
+        <Text style={styles.summaryValue}>{value}</Text>
+        {trend && <Text style={styles.summaryTrend}>{trend}</Text>}
+    </View>
+);
+
+const ChartPlaceholder = ({ title, description }) => (
+    <View style={[styles.card, Shadows.sm]}>
+        <Text style={styles.cardTitle}>{title}</Text>
+        <Text style={styles.cardDescription}>{description}</Text>
+        <View style={styles.chartPlaceholder}>
+            <Ionicons name="stats-chart" size={48} color={KompaColors.gray200} />
+            <Text style={styles.chartText}>
+                Gráfico no disponible. Integra una librería como 'react-native-svg-charts'.
+            </Text>
+        </View>
+    </View>
+);
+
+// --- Componente Principal ---
+
+export default function ReportsScreen() {
+    // 3. Consumir los hooks de datos
     const { obtenerResumenBalance, descargarBalancePdf, loading, error } = useReportes();
-    const { groups } = useGroups(); // Obtiene la lista de grupos para el selector de filtros
+    const { groups } = useGroups();
 
-    // 4. El estado de la UI (filtros y datos del reporte) vive en el componente
+    // 4. Estado local de la UI
     const [resumen, setResumen] = useState<ResumenReporte | null>(null);
     const [filtros, setFiltros] = useState<FiltrosReporte>({});
 
-    // 5. Los manejadores de eventos conectan la UI con la lógica de los hooks
-    const handleGenerarReporte = useCallback(async () => {
+    const handleGenerateReport = useCallback(async () => {
         const resultado = await obtenerResumenBalance(filtros);
         if (!resultado) {
             Alert.alert('Error', error || 'No se pudo generar el reporte.');
         }
         setResumen(resultado);
     }, [obtenerResumenBalance, filtros, error]);
-    
-    const handleDescargarPDF = useCallback(async () => {
+
+    const handleDownloadPDF = useCallback(async () => {
         const exito = await descargarBalancePdf(filtros);
         if (exito) {
             Alert.alert('Éxito', 'La descarga del PDF ha comenzado.');
@@ -42,116 +74,133 @@ export default function ReportesScreen() {
             Alert.alert('Error', error || 'No se pudo generar el PDF.');
         }
     }, [descargarBalancePdf, filtros, error]);
-    
-    const handleLimpiarFiltros = () => {
-        setFiltros({});
-        setResumen(null); // Limpia el reporte anterior
-    };
 
     return (
         <SafeAreaView style={styles.safeArea}>
-            <ScrollView style={styles.container}>
-                <View style={tabsStyles.header}>
-                    <Text style={tabsStyles.headerTitle}>Centro de Reportes</Text>
-                    <Text style={tabsStyles.headerSubtitle}>Analiza tus gastos y balances</Text>
+            <ScrollView contentContainerStyle={styles.container}>
+                <View style={styles.header}>
+                    <Text style={styles.headerTitle}>Centro de Reportes</Text>
                 </View>
 
-                {/* Sección de Filtros */}
-                <View style={styles.card}>
+                {/* Filtros */}
+                <View style={[styles.card, Shadows.sm]}>
                     <Text style={styles.cardTitle}>Filtros</Text>
                     {/* Aquí irían tus componentes de UI para seleccionar grupo y fechas */}
-                    {/* <GroupSelector 
-                        groups={groups} 
-                        selectedValue={filtros.grupo_id}
-                        onValueChange={(id) => setFiltros(prev => ({...prev, grupo_id: id}))} 
-                    /> */}
+                    <Text style={styles.filterLabel}>Grupo</Text>
+                    {/* <Picker ... /> */}
+                    <Text style={styles.filterLabel}>Rango de Fechas</Text>
+                    {/* <DateRangePicker ... /> */}
                     <View style={styles.buttonContainer}>
-                        <Button title="Limpiar" onPress={handleLimpiarFiltros} color={KompaColors.textSecondary} />
-                        <Button title="Generar Reporte" onPress={handleGenerarReporte} disabled={loading} />
+                        <Button title="Generar Reporte" onPress={handleGenerateReport} disabled={loading} />
                     </View>
                 </View>
 
-                {/* Sección de Resultados */}
-                {loading && <ActivityIndicator size="large" color={KompaColors.primary} style={{ marginTop: 20 }}/>}
+                {loading && <ActivityIndicator size="large" color={KompaColors.primary} style={{ marginVertical: 20 }}/>}
 
                 {resumen && !loading && (
-                    <View style={styles.card}>
-                        <View style={styles.cardHeader}>
-                            <Text style={styles.cardTitle}>Resumen de Balance</Text>
-                            <TouchableOpacity onPress={handleDescargarPDF}>
-                                <Text style={styles.downloadLink}>Descargar PDF</Text>
+                    <>
+                        {/* Tarjetas de Resumen */}
+                        <View style={styles.summaryGrid}>
+                            <SummaryCard icon="cash-outline" title="Gastos Totales" value={formatCurrency(resumen.resumen.total_gastos_periodo)} trend="+12.5% vs mes pasado" />
+                            <SummaryCard icon="people-outline" title="Grupos Activos" value={resumen.resumen.cantidad_grupos} trend="+2 este mes" />
+                        </View>
+                        
+                        {/* Gráficos */}
+                        <ChartPlaceholder title="Gastos por Categoría" description="Desglose de tus gastos" />
+                        <ChartPlaceholder title="Tendencia Mensual" description="Evolución de tus gastos" />
+
+                        {/* Tabla de Desglose por Grupo (convertida a lista de tarjetas) */}
+                        <View style={[styles.card, Shadows.sm]}>
+                            <Text style={styles.cardTitle}>Desglose por Grupo</Text>
+                            {resumen.grupos.map((grupo, index) => (
+                                <View key={index} style={styles.groupRow}>
+                                    <Text style={styles.groupName}>{grupo.nombre}</Text>
+                                    <Text>{formatCurrency(grupo.total_gastos)}</Text>
+                                </View>
+                            ))}
+                        </View>
+
+                        <View style={styles.downloadSection}>
+                            <TouchableOpacity style={styles.downloadButton} onPress={handleDownloadPDF}>
+                                <Ionicons name="download-outline" size={20} color="white" />
+                                <Text style={styles.downloadButtonText}>Descargar PDF</Text>
                             </TouchableOpacity>
                         </View>
-                        <View style={styles.summaryItem}>
-                            <Text>Balance General:</Text>
-                            <Text style={styles.summaryValue}>{resumen.resumen.balance_general}</Text>
-                        </View>
-                        <View style={styles.summaryItem}>
-                            <Text>Total Pagado:</Text>
-                            <Text>{resumen.resumen.total_pagado}</Text>
-                        </View>
-                         <View style={styles.summaryItem}>
-                            <Text>Total Adeudado:</Text>
-                            <Text>{resumen.resumen.total_adeudado}</Text>
-                        </View>
-                        {/* Aquí puedes mapear y mostrar más detalles del objeto 'resumen' */}
-                    </View>
+                    </>
                 )}
-
             </ScrollView>
         </SafeAreaView>
     );
 }
 
-// Estilos para la página de reportes
 const styles = StyleSheet.create({
-    safeArea: {
-        flex: 1,
-        backgroundColor: KompaColors.background,
-    },
-    container: {
-        flex: 1,
-    },
+    safeArea: { flex: 1, backgroundColor: KompaColors.background },
+    container: { padding: 16 },
+    header: { marginBottom: 16 },
+    headerTitle: { fontSize: 28, fontWeight: 'bold' },
     card: {
         backgroundColor: 'white',
         borderRadius: 12,
         padding: 16,
-        marginHorizontal: 16,
         marginBottom: 16,
-        elevation: 2,
-        shadowColor: '#000',
-        shadowOpacity: 0.1,
-        shadowRadius: 5,
     },
-    cardTitle: {
-        fontSize: 18,
-        fontWeight: 'bold',
-        marginBottom: 12,
-    },
-    cardHeader: {
+    cardTitle: { fontSize: 18, fontWeight: 'bold', marginBottom: 8 },
+    cardDescription: { color: KompaColors.textSecondary, marginBottom: 16 },
+    filterLabel: { fontWeight: '500', marginTop: 8, marginBottom: 4 },
+    buttonContainer: { marginTop: 16 },
+    summaryGrid: {
         flexDirection: 'row',
-        justifyContent: 'space-between',
+        gap: 12,
+        marginBottom: 16,
+    },
+    summaryCard: {
+        flex: 1,
+        backgroundColor: 'white',
+        borderRadius: 12,
+        padding: 16,
+    },
+    summaryHeader: { flexDirection: 'row', justifyContent: 'space-between' },
+    summaryTitle: { color: KompaColors.textSecondary, fontSize: 14, fontWeight: '500' },
+    summaryValue: { fontSize: 22, fontWeight: 'bold', marginVertical: 8 },
+    summaryTrend: { color: KompaColors.success, fontSize: 12 },
+    chartPlaceholder: {
+        height: 200,
+        backgroundColor: KompaColors.gray50,
+        borderRadius: 8,
+        justifyContent: 'center',
         alignItems: 'center',
+        padding: 16,
     },
-    downloadLink: {
-        color: KompaColors.primary,
-        fontWeight: '600',
+    chartText: {
+        marginTop: 8,
+        color: KompaColors.textSecondary,
+        textAlign: 'center',
+        fontSize: 12,
     },
-    buttonContainer: {
-        flexDirection: 'row',
-        justifyContent: 'flex-end',
-        marginTop: 16,
-        gap: 8,
-    },
-    summaryItem: {
+    groupRow: {
         flexDirection: 'row',
         justifyContent: 'space-between',
-        paddingVertical: 8,
+        paddingVertical: 12,
         borderBottomWidth: 1,
         borderBottomColor: KompaColors.gray100,
     },
-    summaryValue: {
+    groupName: {
+        fontWeight: '500',
+    },
+    downloadSection: {
+        marginTop: 16,
+    },
+    downloadButton: {
+        backgroundColor: KompaColors.primary,
+        flexDirection: 'row',
+        justifyContent: 'center',
+        alignItems: 'center',
+        padding: 16,
+        borderRadius: 8,
+    },
+    downloadButtonText: {
+        color: 'white',
         fontWeight: 'bold',
-        fontSize: 16,
-    }
+        marginLeft: 8,
+    },
 });
