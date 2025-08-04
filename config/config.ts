@@ -340,34 +340,45 @@ export interface Participante {
 }
 
 export interface Deuda {
-    id: string;
-    deudor: User;
-    acreedor: User;
-    monto: number;
-    gasto: Gasto;
+    gasto_id: string;
+    gasto_id_publico: string;
+    descripcion: string;
+    monto_total: string;
+    monto_adeudado: string;
+    pagado_por: string;
+    grupo: string;
+    fecha_creacion: string;
 }
 
 export interface Acreencia {
-    id: string;
-    deudor: User;
-    acreedor: User;
-    monto: number;
-    gasto: Gasto;
+    gasto_id: string;
+    gasto_id_publico: string;
+    descripcion: string;
+    monto_total: string;
+    monto_adeudado: number;
+    deudores: string[];
+    grupo: string;
+    fecha_creacion: string;
 }
 
 export interface DeudaResumen {
-    total_debes: number;
-    total_te_deben: number;
+    total_deudas: number;
+    total_acreencias: number;
     balance: number;
 }
 
 export interface CreateGastoRequest {
+    id?: string; // ID generado por el cliente para gastos offline
     grupo_id: string;
     descripcion: string;
     monto_total: number;
     categoria?: string;
     pagado_por: string;
+    id_publico: string;
     participantes: { id_usuario: string; monto_proporcional: number }[];
+    estado_pago?: 'pendiente' | 'pagado';
+    ultima_modificacion: string;
+    modificado_por: string;
 }
 
 export interface UpdateGastoRequest extends Partial<CreateGastoRequest> {}

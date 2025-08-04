@@ -175,13 +175,25 @@ export const AddExpenseModal = ({ visible, onClose }: AddExpenseModalProps) => {
         });
 
         try {
-            const newExpense = await createExpense({
+            // Generar los campos adicionales requeridos por el backend
+            const currentTimestamp = new Date().toISOString().replace('T', ' ').slice(0, 19);
+            const publicId = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+            
+            const expensePayload = {
+                grupo_id: selectedGroupId,
                 descripcion: description.trim(),
                 monto_total: numericAmount,
-                grupo_id: selectedGroupId,
                 pagado_por: user!.id,
+                id_publico: publicId,
                 participantes: participants,
-            });
+                estado_pago: 'pendiente' as const,
+                ultima_modificacion: currentTimestamp,
+                modificado_por: user!.id,
+            };
+
+            console.log('Payload completo para backend:', expensePayload);
+
+            const newExpense = await createExpense(expensePayload);
 
             console.log('Respuesta del createExpense:', newExpense);
 

@@ -1,28 +1,30 @@
 // app/(tabs)/expenses.tsx
-import React, { useState, useMemo } from 'react';
+import { Ionicons } from '@expo/vector-icons';
+import React, { useMemo, useState } from 'react';
 import {
-    View,
-    Text,
-    StyleSheet,
-    TextInput,
-    FlatList,
     ActivityIndicator,
-    TouchableOpacity,
-    Modal,
     Alert,
-    ScrollView,
+    FlatList,
+    StyleSheet,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
 
 // 1. Importar hooks de datos reales
-import { useExpenses } from '@/hooks/useExpenses';
+import { useDebts } from '@/hooks/useExpenses'; // Cambiar de useExpenses a useDebts
 import { useGroups } from '@/hooks/useGroups'; // Para el filtro de grupos
+// 2. Importar tipos
+import { Deuda, Acreencia } from '@/config/config';
+
+// Tipo unión para el FlatList
+type DebtOrCredit = Deuda | Acreencia;
 
 // 2. Importar componentes y constantes
 import { AddExpenseModal } from '@/components/modals/AddExpenseModal';
-import { ExpenseCard } from '@/components/expenses/ExpenseCard';
-import { KompaColors, Shadows, Spacing, FontSizes, BorderRadius } from '@/constants/Styles';
+import { BorderRadius, FontSizes, KompaColors, Shadows, Spacing } from '@/constants/Styles';
 
 // Componente para los filtros
 interface ExpenseFiltersProps {
@@ -50,48 +52,111 @@ const ExpenseFilters: React.FC<ExpenseFiltersProps> = ({
                 onChangeText={setSearchQuery}
             />
         </View>
-        {/* Aquí iría un componente de <Picker> o <Select> para el filtro de grupo */}
+        
+        {/* Selector de grupos simplificado */}
+        <View style={styles.groupFilterContainer}>
+            <Text style={styles.groupFilterLabel}>Filtrar por grupo:</Text>
+            <TouchableOpacity 
+                style={styles.groupFilterButton}
+                onPress={() => {
+                    // Rotar entre "Todos los grupos" y los nombres de grupos específicos
+                    const groupNames = ['All Groups', ...Array.from(new Set([...groups.map(g => g.nombre)]))];
+                    const currentIndex = groupNames.indexOf(selectedGroup);
+                    const nextIndex = (currentIndex + 1) % groupNames.length;
+                    setSelectedGroup(groupNames[nextIndex]);
+                }}
+            >
+                <Text style={styles.groupFilterButtonText}>
+                    {selectedGroup === 'All Groups' ? 'Todos los grupos' : selectedGroup}
+                </Text>
+                <Ionicons name="chevron-down" size={16} color={KompaColors.textSecondary} />
+            </TouchableOpacity>
+        </View>
     </View>
 );
 
 // --- Componente Principal ---
 export default function ExpensesScreen() {
-    // 3. Consumir los hooks
-    const { expenses, loading: expensesLoading } = useExpenses();
+    // 3. Consumir los hooks para deudas y grupos
+    const { debts, credits, summary, loading: debtsLoading } = useDebts();
     const { groups, loading: groupsLoading } = useGroups();
     
     // 4. Estado local para los filtros y modal
     const [searchQuery, setSearchQuery] = useState('');
     const [selectedGroup, setSelectedGroup] = useState('All Groups');
     const [isModalVisible, setModalVisible] = useState(false);
+    const [activeTab, setActiveTab] = useState<'debts' | 'credits'>('debts');
 
-    // 5. Lógica de filtrado
-    const filteredExpenses = useMemo(() => {
-        return expenses.filter((expense) => {
+    // 5. Lógica de filtrado para deudas
+    const filteredDebts = useMemo(() => {
+        return debts.filter((debt) => {
             const matchesSearch =
-                expense.descripcion.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                expense.pagado_por.toLowerCase().includes(searchQuery.toLowerCase());
+                debt.descripcion.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                debt.pagado_por.toLowerCase().includes(searchQuery.toLowerCase());
             
-            const matchesGroup = selectedGroup === 'All Groups' || expense.grupo?.id === selectedGroup;
+            const matchesGroup = selectedGroup === 'All Groups' || debt.grupo === selectedGroup;
 
             return matchesSearch && matchesGroup;
         });
-    }, [expenses, searchQuery, selectedGroup]);
+    }, [debts, searchQuery, selectedGroup]);
 
-    const handleEdit = (expense: any) => {
+    // 6. Lógica de filtrado para acreencias
+    const filteredCredits = useMemo(() => {
+        return credits.filter((credit) => {
+            const matchesSearch =
+                credit.descripcion.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                credit.deudores.some(deudor => deudor.toLowerCase().includes(searchQuery.toLowerCase()));
+            
+            const matchesGroup = selectedGroup === 'All Groups' || credit.grupo === selectedGroup;
+
+            return matchesSearch && matchesGroup;
+        });
+    }, [credits, searchQuery, selectedGroup]);
+
+    const handleEdit = (item: any) => {
         // Lógica para abrir modal de edición
-        Alert.alert('Editar', `Editar gasto: ${expense.descripcion}`);
+        Alert.alert('Editar', `Editar gasto: ${item.descripcion}`);
     };
 
-    const handleDelete = (expense: any) => {
+    const handleDelete = (item: any) => {
         // Lógica para confirmar y eliminar
-        Alert.alert('Eliminar', `¿Eliminar gasto: ${expense.descripcion}?`);
+        Alert.alert('Eliminar', `¿Eliminar gasto: ${item.descripcion}?`);
     };
 
     return (
         <SafeAreaView style={styles.safeArea}>
             <View style={styles.header}>
                 <Text style={styles.headerTitle}>Gestión de Gastos</Text>
+                {summary && (
+                    <View style={styles.summaryContainer}>
+                        <Text style={styles.summaryText}>
+                            Balance: ${summary.balance.toFixed(2)}
+                        </Text>
+                        <Text style={styles.summarySubtext}>
+                            Debes: ${summary.total_deudas.toFixed(2)} | Te deben: ${summary.total_acreencias.toFixed(2)}
+                        </Text>
+                    </View>
+                )}
+            </View>
+
+            {/* Pestañas para cambiar entre deudas y acreencias */}
+            <View style={styles.tabsContainer}>
+                <TouchableOpacity 
+                    style={[styles.tab, activeTab === 'debts' && styles.activeTab]}
+                    onPress={() => setActiveTab('debts')}
+                >
+                    <Text style={[styles.tabText, activeTab === 'debts' && styles.activeTabText]}>
+                        Mis Deudas ({debts.length})
+                    </Text>
+                </TouchableOpacity>
+                <TouchableOpacity 
+                    style={[styles.tab, activeTab === 'credits' && styles.activeTab]}
+                    onPress={() => setActiveTab('credits')}
+                >
+                    <Text style={[styles.tabText, activeTab === 'credits' && styles.activeTabText]}>
+                        Me Deben ({credits.length})
+                    </Text>
+                </TouchableOpacity>
             </View>
 
             <ExpenseFilters
@@ -102,23 +167,43 @@ export default function ExpensesScreen() {
                 setSelectedGroup={setSelectedGroup}
             />
 
-            {expensesLoading ? (
+            {debtsLoading ? (
                 <ActivityIndicator size="large" style={{ marginTop: 20 }} />
             ) : (
-                <FlatList
-                    data={filteredExpenses}
-                    keyExtractor={(item) => item.id}
-                    renderItem={({ item }) => (
-                        <ExpenseCard 
-                            expense={item} 
-                            onEdit={() => handleEdit(item)}
-                            onDelete={() => handleDelete(item)}
-                        />
-                    )}
+                <FlatList<DebtOrCredit>
+                    data={activeTab === 'debts' ? (filteredDebts as DebtOrCredit[]) : (filteredCredits as DebtOrCredit[])}
+                    keyExtractor={(item) => item.gasto_id}
+                    renderItem={({ item }) => {
+                        const debt = item as any; // Tipo unión para manejar ambos casos
+                        return (
+                            <View style={styles.debtCard}>
+                                <View style={styles.debtHeader}>
+                                    <Text style={styles.debtDescription}>{debt.descripcion}</Text>
+                                    <Text style={styles.debtAmount}>
+                                        ${typeof debt.monto_adeudado === 'string' ? 
+                                            parseFloat(debt.monto_adeudado).toFixed(2) : 
+                                            debt.monto_adeudado?.toFixed(2) || '0.00'}
+                                    </Text>
+                                </View>
+                                <Text style={styles.debtGroup}>{debt.grupo}</Text>
+                                <Text style={styles.debtPayer}>
+                                    {activeTab === 'debts' ? `Pagado por: ${debt.pagado_por}` : 
+                                     `Deudores: ${debt.deudores?.join(', ') || 'N/A'}`}
+                                </Text>
+                                <Text style={styles.debtDate}>
+                                    {new Date(debt.fecha_creacion).toLocaleDateString()}
+                                </Text>
+                            </View>
+                        );
+                    }}
                     contentContainerStyle={styles.listContent}
                     ListEmptyComponent={
                         <View style={styles.emptyContainer}>
-                            <Text>No se encontraron gastos.</Text>
+                            <Text>
+                                {activeTab === 'debts' ? 
+                                 'No tienes deudas pendientes.' : 
+                                 'No tienes acreencias pendientes.'}
+                            </Text>
                         </View>
                     }
                 />
@@ -151,6 +236,85 @@ const styles = StyleSheet.create({
         fontSize: 24,
         fontWeight: 'bold',
     },
+    summaryContainer: {
+        marginTop: 8,
+        padding: 12,
+        backgroundColor: KompaColors.gray100,
+        borderRadius: 8,
+    },
+    summaryText: {
+        fontSize: 16,
+        fontWeight: 'bold',
+        textAlign: 'center',
+    },
+    summarySubtext: {
+        fontSize: 14,
+        color: KompaColors.textSecondary,
+        textAlign: 'center',
+        marginTop: 4,
+    },
+    tabsContainer: {
+        flexDirection: 'row',
+        paddingHorizontal: 16,
+        marginBottom: 8,
+    },
+    tab: {
+        flex: 1,
+        paddingVertical: 12,
+        alignItems: 'center',
+        backgroundColor: KompaColors.gray100,
+        marginHorizontal: 4,
+        borderRadius: 8,
+    },
+    activeTab: {
+        backgroundColor: KompaColors.primary,
+    },
+    tabText: {
+        fontSize: 14,
+        fontWeight: '500',
+        color: KompaColors.textSecondary,
+    },
+    activeTabText: {
+        color: 'white',
+    },
+    debtCard: {
+        backgroundColor: 'white',
+        padding: 16,
+        marginVertical: 4,
+        borderRadius: 8,
+        ...Shadows.sm,
+    },
+    debtHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: 8,
+    },
+    debtDescription: {
+        fontSize: 16,
+        fontWeight: 'bold',
+        flex: 1,
+        marginRight: 8,
+    },
+    debtAmount: {
+        fontSize: 16,
+        fontWeight: 'bold',
+        color: KompaColors.primary,
+    },
+    debtGroup: {
+        fontSize: 14,
+        color: KompaColors.textSecondary,
+        marginBottom: 4,
+    },
+    debtPayer: {
+        fontSize: 14,
+        color: KompaColors.textPrimary,
+        marginBottom: 4,
+    },
+    debtDate: {
+        fontSize: 12,
+        color: KompaColors.textSecondary,
+    },
     filtersContainer: {
         paddingHorizontal: 16,
         paddingBottom: 16,
@@ -160,6 +324,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         backgroundColor: KompaColors.gray100,
         borderRadius: 8,
+        marginBottom: 8,
     },
     searchIcon: {
         marginLeft: 12,
@@ -168,6 +333,28 @@ const styles = StyleSheet.create({
         height: 44,
         flex: 1,
         paddingHorizontal: 8,
+    },
+    groupFilterContainer: {
+        marginTop: 8,
+    },
+    groupFilterLabel: {
+        fontSize: 14,
+        fontWeight: '500',
+        color: KompaColors.textPrimary,
+        marginBottom: 4,
+    },
+    groupFilterButton: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        backgroundColor: KompaColors.gray100,
+        paddingHorizontal: 12,
+        paddingVertical: 8,
+        borderRadius: 8,
+    },
+    groupFilterButtonText: {
+        fontSize: 14,
+        color: KompaColors.textPrimary,
     },
     listContent: {
         paddingHorizontal: 16,
@@ -189,94 +376,5 @@ const styles = StyleSheet.create({
         backgroundColor: KompaColors.primary,
         justifyContent: 'center',
         alignItems: 'center',
-    },
-    modalContainer: {
-        flex: 1,
-        backgroundColor: KompaColors.background,
-    },
-    modalHeader: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        padding: Spacing.lg,
-        backgroundColor: '#FFFFFF',
-        borderBottomWidth: 1,
-        borderBottomColor: KompaColors.gray200,
-    },
-    modalTitle: {
-        fontSize: FontSizes.lg,
-        fontWeight: 'bold',
-        color: KompaColors.textPrimary,
-    },
-    saveButton: {
-        fontSize: FontSizes.md,
-        fontWeight: '600',
-        color: KompaColors.primary,
-    },
-    modalContent: {
-        flex: 1,
-        padding: Spacing.lg,
-    },
-    inputGroup: {
-        marginBottom: Spacing.lg,
-    },
-    inputLabel: {
-        fontSize: FontSizes.md,
-        fontWeight: '600',
-        color: KompaColors.textPrimary,
-        marginBottom: Spacing.sm,
-    },
-    textInput: {
-        borderWidth: 1,
-        borderColor: KompaColors.gray300,
-        borderRadius: BorderRadius.md,
-        padding: Spacing.md,
-        fontSize: FontSizes.md,
-        backgroundColor: '#FFFFFF',
-    },
-    categoryContainer: {
-        flexDirection: 'row',
-        flexWrap: 'wrap',
-        gap: Spacing.sm,
-    },
-    categoryButton: {
-        paddingHorizontal: Spacing.md,
-        paddingVertical: Spacing.sm,
-        borderRadius: BorderRadius.md,
-        borderWidth: 1,
-        borderColor: KompaColors.gray300,
-        backgroundColor: '#FFFFFF',
-    },
-    categoryButtonActive: {
-        backgroundColor: KompaColors.primary,
-        borderColor: KompaColors.primary,
-    },
-    categoryText: {
-        fontSize: FontSizes.sm,
-        color: KompaColors.textSecondary,
-    },
-    categoryTextActive: {
-        color: '#FFFFFF',
-    },
-    groupContainer: {
-        gap: Spacing.sm,
-    },
-    groupButton: {
-        padding: Spacing.md,
-        borderRadius: BorderRadius.md,
-        borderWidth: 1,
-        borderColor: KompaColors.gray300,
-        backgroundColor: '#FFFFFF',
-    },
-    groupButtonActive: {
-        backgroundColor: KompaColors.secondary,
-        borderColor: KompaColors.secondary,
-    },
-    groupText: {
-        fontSize: FontSizes.md,
-        color: KompaColors.textPrimary,
-    },
-    groupTextActive: {
-        color: '#FFFFFF',
     },
 });

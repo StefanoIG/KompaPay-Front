@@ -1,20 +1,20 @@
 // src/hooks/useExpenses.ts
 
-import { useState, useCallback, useEffect } from 'react';
-import { useApi } from './useAPI';
+import { useCallback, useEffect, useState } from 'react';
 import {
-    Gasto,
-    Deuda,
     Acreencia,
-    DeudaResumen,
     CreateGastoRequest,
-    UpdateGastoRequest,
-    PayDebtRequest,
+    Deuda,
+    DeudaResumen,
     ENDPOINTS,
+    Gasto,
     GroupExpensesParams,
+    PayDebtRequest,
+    UpdateGastoRequest,
 } from '../config/config';
+import { useApi } from './useAPI';
 
-// Interfaz para la respuesta de deudas
+// Interfaz para la respuesta de deudas del backend
 interface DeudaResponse {
     deudas: Deuda[];
     acreencias: Acreencia[];
@@ -178,11 +178,20 @@ export const useDebts = () => {
     const [summary, setSummary] = useState<DeudaResumen | null>(null);
 
     const fetchMyDebts = useCallback(async () => {
-        const response = await request<DeudaResponse>(ENDPOINTS.EXPENSES.MY_DEBTS);
-        if (response) {
-            setDebts(response.deudas || []);
-            setCredits(response.acreencias || []);
-            setSummary(response.resumen || null);
+        console.log('fetchMyDebts - Iniciando petición a:', ENDPOINTS.EXPENSES.MY_DEBTS);
+        
+        const response = await request<{data: DeudaResponse}>(ENDPOINTS.EXPENSES.MY_DEBTS);
+        
+        console.log('fetchMyDebts - Respuesta completa:', response);
+        
+        if (response?.data) {
+            console.log('fetchMyDebts - Deudas:', response.data.deudas);
+            console.log('fetchMyDebts - Acreencias:', response.data.acreencias);
+            console.log('fetchMyDebts - Resumen:', response.data.resumen);
+            
+            setDebts(response.data.deudas || []);
+            setCredits(response.data.acreencias || []);
+            setSummary(response.data.resumen || null);
         }
     }, [request]);
 

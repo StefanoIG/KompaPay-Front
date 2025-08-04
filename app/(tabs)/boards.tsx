@@ -6,7 +6,7 @@ import { useTableros } from '@/hooks/useTableros';
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useState } from 'react';
-import { ActivityIndicator, Alert, Button, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Alert, Button, Modal, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function BoardsScreen() {
@@ -14,6 +14,8 @@ export default function BoardsScreen() {
     const { groupId } = useLocalSearchParams<{ groupId: string }>();
     const router = useRouter();
     const [selectedGroupId, setSelectedGroupId] = useState<string>(groupId || '');
+    const [showCreateModal, setShowCreateModal] = useState(false);
+    const [newTableroName, setNewTableroName] = useState('');
 
     // Hook para obtener los grupos disponibles
     const { groups } = useGroups();
@@ -26,38 +28,32 @@ export default function BoardsScreen() {
             Alert.alert('Error', 'Primero selecciona un grupo para crear un tablero');
             return;
         }
+        setShowCreateModal(true);
+    };
 
-        Alert.prompt(
-            'Nuevo Tablero',
-            'Ingresa el nombre del tablero:',
-            [
-                { text: 'Cancelar', style: 'cancel' },
-                {
-                    text: 'Crear',
-                    onPress: async (nombre?: string) => {
-                        if (nombre && nombre.trim()) {
-                            try {
-                                console.log('Creando tablero:', nombre.trim(), 'en grupo:', selectedGroupId);
-                                const nuevoTablero = await createTablero({
-                                    nombre: nombre.trim(),
-                                    descripcion: '',
-                                    color: '#3B82F6'
-                                });
-                                console.log('Tablero creado:', nuevoTablero);
-                                fetchTableros(); // Refrescar la lista
-                                Alert.alert('Éxito', 'Tablero creado correctamente');
-                            } catch (error) {
-                                console.error('Error al crear tablero:', error);
-                                Alert.alert('Error', 'No se pudo crear el tablero');
-                            }
-                        } else {
-                            Alert.alert('Error', 'El nombre del tablero es obligatorio');
-                        }
-                    }
-                }
-            ],
-            'plain-text'
-        );
+    const handleCreateTableroConfirm = async () => {
+        if (!newTableroName.trim()) {
+            Alert.alert('Error', 'El nombre del tablero es obligatorio');
+            return;
+        }
+
+        try {
+            console.log('Creando tablero:', newTableroName.trim(), 'en grupo:', selectedGroupId);
+            const nuevoTablero = await createTablero({
+                nombre: newTableroName.trim(),
+                descripcion: '',
+                color: '#3B82F6'
+            });
+            console.log('Tablero creado:', nuevoTablero);
+            
+            setShowCreateModal(false);
+            setNewTableroName('');
+            fetchTableros(); // Refrescar la lista
+            Alert.alert('Éxito', 'Tablero creado correctamente');
+        } catch (error) {
+            console.error('Error al crear tablero:', error);
+            Alert.alert('Error', 'No se pudo crear el tablero');
+        }
     };
 
     // Componente para seleccionar grupo
@@ -195,6 +191,36 @@ export default function BoardsScreen() {
                     </TouchableOpacity>
                 </ScrollView>
             )}
+            
+            {/* Modal para crear tablero */}
+            <Modal
+                visible={showCreateModal}
+                animationType="slide"
+                presentationStyle="pageSheet"
+                transparent={false}
+            >
+                <SafeAreaView style={styles.modalContainer}>
+                    <View style={styles.modalHeader}>
+                        <TouchableOpacity onPress={() => setShowCreateModal(false)}>
+                            <Ionicons name="close" size={24} color={KompaColors.textPrimary} />
+                        </TouchableOpacity>
+                        <Text style={styles.modalTitle}>Nuevo Tablero</Text>
+                        <TouchableOpacity onPress={handleCreateTableroConfirm}>
+                            <Text style={styles.modalSaveButton}>Crear</Text>
+                        </TouchableOpacity>
+                    </View>
+                    <View style={styles.modalContent}>
+                        <Text style={styles.modalLabel}>Nombre del tablero *</Text>
+                        <TextInput
+                            style={styles.modalInput}
+                            value={newTableroName}
+                            onChangeText={setNewTableroName}
+                            placeholder="Ej: To Do, En Progreso, Completado"
+                            autoFocus
+                        />
+                    </View>
+                </SafeAreaView>
+            </Modal>
         </SafeAreaView>
     );
 }
@@ -359,5 +385,47 @@ const styles = StyleSheet.create({
         color: KompaColors.primary,
         fontSize: 14,
         fontWeight: '500',
+    },
+    // Estilos del modal
+    modalContainer: {
+        flex: 1,
+        backgroundColor: KompaColors.background,
+    },
+    modalHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        paddingHorizontal: 16,
+        paddingVertical: 12,
+        borderBottomWidth: 1,
+        borderBottomColor: KompaColors.gray200,
+    },
+    modalTitle: {
+        fontSize: 18,
+        fontWeight: 'bold',
+        color: KompaColors.textPrimary,
+    },
+    modalSaveButton: {
+        fontSize: 16,
+        fontWeight: '600',
+        color: KompaColors.primary,
+    },
+    modalContent: {
+        flex: 1,
+        padding: 16,
+    },
+    modalLabel: {
+        fontSize: 16,
+        fontWeight: '600',
+        color: KompaColors.textPrimary,
+        marginBottom: 8,
+    },
+    modalInput: {
+        borderWidth: 1,
+        borderColor: KompaColors.gray300,
+        borderRadius: 8,
+        padding: 12,
+        fontSize: 16,
+        backgroundColor: '#FFFFFF',
     },
 });

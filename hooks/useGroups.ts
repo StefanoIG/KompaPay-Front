@@ -25,10 +25,16 @@ export const useGroups = () => {
     const [groups, setGroups] = useState<Grupo[]>([]);
 
     const fetchGroups = useCallback(async () => {
+        console.log('fetchGroups - Iniciando petición a:', ENDPOINTS.GROUPS.LIST);
+        
         const data = await request<any>(ENDPOINTS.GROUPS.LIST);
+        
+        console.log('fetchGroups - Respuesta completa:', data);
+        
         if (data) {
             // La API devuelve un objeto con claves numéricas, convertirlo a array
             const groupsArray = Array.isArray(data) ? data : Object.values(data);
+            console.log('fetchGroups - Grupos procesados:', groupsArray);
             setGroups(groupsArray as Grupo[]);
         }
     }, [request]);
