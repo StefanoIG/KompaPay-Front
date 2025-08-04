@@ -24,8 +24,11 @@ export const useNotas = (groupId: string) => {
     const typingTimeoutRef = useRef<Map<string, NodeJS.Timeout>>(new Map());
 
     const loadNotas = useCallback(async () => {
-        // Asumiendo que el endpoint para notas es similar al de tableros
-        const endpoint = ENDPOINTS.TABLEROS.LIST.replace('{grupoId}', groupId) + '/notas';
+        if (!groupId || groupId.trim() === '') {
+            console.warn('loadNotas: groupId is empty or undefined');
+            return;
+        }
+        const endpoint = ENDPOINTS.NOTAS.LIST.replace('{grupoId}', groupId);
         const data = await request<Nota[]>(endpoint);
         if (data) {
             setNotas(data);
@@ -92,7 +95,11 @@ export const useNotas = (groupId: string) => {
     // --- Funciones CRUD ---
 
     const createNota = useCallback(async (data: CreateNotaRequest) => {
-        const endpoint = ENDPOINTS.TABLEROS.LIST.replace('{grupoId}', groupId) + '/notas';
+        if (!groupId || groupId.trim() === '') {
+            console.error('createNota: groupId is empty or undefined');
+            return null;
+        }
+        const endpoint = ENDPOINTS.NOTAS.CREATE.replace('{grupoId}', groupId);
         return request<Nota>(endpoint, {
             method: 'POST',
             body: JSON.stringify(data),

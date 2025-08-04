@@ -63,21 +63,47 @@ export default function TabLayout() {
       <Tabs
         screenOptions={{
           tabBarActiveTintColor: KompaColors.primary,
-          tabBarInactiveTintColor: KompaColors.textSecondary,
+          tabBarInactiveTintColor: KompaColors.gray300,
           headerShown: false,
           tabBarButton: HapticTab,
           tabBarBackground: TabBarBackground,
+          tabBarLabelStyle: {
+            fontSize: 11,
+            fontWeight: '600',
+            marginTop: 2,
+          },
+          tabBarIconStyle: {
+            marginBottom: 0,
+          },
           tabBarStyle: Platform.select({
             ios: { 
               position: 'absolute', 
-              backgroundColor: 'transparent' 
+              backgroundColor: 'white',
+              borderTopWidth: 0.5,
+              borderTopColor: KompaColors.gray200,
+              height: 88,
+              paddingBottom: 24,
+              paddingTop: 6,
+              shadowColor: '#000',
+              shadowOffset: { width: 0, height: -1 },
+              shadowOpacity: 0.05,
+              shadowRadius: 3,
             },
             web: { 
               display: 'none' 
             }, // Ocultar en web porque usamos sidebar
             default: { 
-              backgroundColor: KompaColors.background, 
-              borderTopColor: KompaColors.gray200 
+              backgroundColor: 'white', 
+              borderTopColor: KompaColors.gray200,
+              borderTopWidth: 0.5,
+              height: 72,
+              paddingBottom: 12,
+              paddingTop: 6,
+              elevation: 12,
+              shadowColor: '#000',
+              shadowOffset: { width: 0, height: -1 },
+              shadowOpacity: 0.08,
+              shadowRadius: 3,
             },
           }),
         }}
@@ -159,10 +185,6 @@ export default function TabLayout() {
         />
 
         {/* 5. Ocultar las pantallas que no queramos en la barra de pestañas */}
-        <Tabs.Screen name="index" options={{ href: null }} />
-        <Tabs.Screen name="explore2" options={{ href: null }} />
-        <Tabs.Screen name="dashboard_refactored" options={{ href: null }} />
-        <Tabs.Screen name="explore" options={{ href: null }} />
         <Tabs.Screen name="boards" options={{ href: null }} />
       </Tabs>
       {Platform.OS !== 'web' && showQuickNavigation && <QuickNavigationMenu />}

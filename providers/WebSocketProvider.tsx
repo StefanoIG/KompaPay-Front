@@ -69,6 +69,33 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         }
 
         try {
+            console.log('Initializing Pusher connection...');
+            
+            // Para Expo managed workflow, usar una implementación mock
+            if (__DEV__) {
+                console.warn('Using mock Pusher implementation for Expo managed workflow');
+                // Crear un mock de Pusher que simule la API pero no haga conexiones reales
+                const mockPusher = {
+                    init: async () => true,
+                    connect: async () => true,
+                    disconnect: async () => true,
+                    subscribe: ({ channelName, onSubscriptionSucceeded }: any) => {
+                        console.log(`Mock: Subscribed to ${channelName}`);
+                        // Simular suscripción exitosa después de un delay
+                        setTimeout(() => {
+                            onSubscriptionSucceeded?.({ members: [] });
+                        }, 100);
+                    },
+                    unsubscribe: ({ channelName }: any) => {
+                        console.log(`Mock: Unsubscribed from ${channelName}`);
+                    }
+                };
+                
+                pusherRef.current = mockPusher as any;
+                setIsConnected(false); // Mantener como desconectado pero sin errores
+                return;
+            }
+            
             const pusher = Pusher.getInstance();
             
             await pusher.init({
