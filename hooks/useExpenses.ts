@@ -184,14 +184,16 @@ export const useDebts = () => {
         
         console.log('fetchMyDebts - Respuesta completa:', response);
         
-        if (response?.data) {
-            console.log('fetchMyDebts - Deudas:', response.data.deudas);
-            console.log('fetchMyDebts - Acreencias:', response.data.acreencias);
-            console.log('fetchMyDebts - Resumen:', response.data.resumen);
+        if (response) {
+            // El backend no envuelve en data, los datos vienen directamente
+            const directData = response as unknown as DeudaResponse;
+            console.log('fetchMyDebts - Deudas:', directData.deudas);
+            console.log('fetchMyDebts - Acreencias:', directData.acreencias);
+            console.log('fetchMyDebts - Resumen:', directData.resumen);
             
-            setDebts(response.data.deudas || []);
-            setCredits(response.data.acreencias || []);
-            setSummary(response.data.resumen || null);
+            setDebts(directData.deudas || []);
+            setCredits(directData.acreencias || []);
+            setSummary(directData.resumen || null);
         }
     }, [request]);
 

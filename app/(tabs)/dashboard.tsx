@@ -31,10 +31,8 @@ import { formatCurrency } from '@/utils/formatters';
 // Types for component props
 interface BalanceSummary {
     balance?: number;
-    totalDebt?: number;
-    totalCredit?: number;
-    total_te_deben?: number;
-    total_debes?: number;
+    total_deudas?: number;
+    total_acreencias?: number;
 }
 
 interface SummaryCardProps {
@@ -65,14 +63,14 @@ const BalanceCard = ({ summary }: { summary: BalanceSummary }) => (
                     <Ionicons name="trending-up" size={16} color="#A7F3D0" />
                     <Text style={styles.balanceItemLabel}>Te deben</Text>
                 </View>
-                <Text style={styles.balanceAmount}>{formatCurrency(summary?.total_te_deben ?? 0)}</Text>
+                <Text style={styles.balanceAmount}>{formatCurrency(summary?.total_acreencias ?? 0)}</Text>
             </View>
             <View style={styles.balanceItem}>
                 <View style={styles.balanceItemHeader}>
                     <Ionicons name="trending-down" size={16} color="#FECDD3" />
                     <Text style={styles.balanceItemLabel}>Debes</Text>
                 </View>
-                <Text style={styles.balanceAmount}>{formatCurrency(summary?.total_debes ?? 0)}</Text>
+                <Text style={styles.balanceAmount}>{formatCurrency(summary?.total_deudas ?? 0)}</Text>
             </View>
         </View>
         <View style={styles.netBalanceContainer}>
@@ -149,11 +147,15 @@ export default function DashboardScreen() {
         }
         
         const success = await createExpense({
+            id: `${Date.now()}_${Math.random()}`, // ID temporal para offline
             grupo_id: selectedGroupId,
             descripcion: expenseDescription,
             monto_total: parseFloat(expenseAmount),
             pagado_por: user.id,
-            participantes: [{ id_usuario: user.id, monto_proporcional: parseFloat(expenseAmount) }]
+            id_publico: `gasto_${Date.now()}`,
+            participantes: [{ id_usuario: user.id, monto_proporcional: parseFloat(expenseAmount) }],
+            ultima_modificacion: new Date().toISOString(),
+            modificado_por: user.id
         });
 
         if (success) {

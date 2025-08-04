@@ -2,7 +2,7 @@
 
 import { useState, useCallback } from 'react';
 import { useApi } from './useAPI'; // Usaremos nuestra versión mejorada
-import { ENDPOINTS, FiltrosReporte, ResumenReporte } from '../config/config';
+import { ENDPOINTS, FiltrosReporte, ResumenReporte, API_URL } from '../config/config';
 import { Platform } from 'react-native';
 
 // Importar librerías para descarga en móvil (ejemplo)
@@ -38,14 +38,24 @@ export const useReportes = () => {
         const params = new URLSearchParams(filtros as any).toString();
         const endpoint = `${ENDPOINTS.REPORTS.BALANCE_PDF}${params ? `?${params}` : ''}`;
 
-        // Llamamos a nuestro useApi pidiendo una respuesta de tipo 'blob'
-        const blob = await request<Blob>(endpoint, {});
-
-        if (!blob) {
-            return false; // El hook useApi ya habrá establecido el error.
-        }
-
         try {
+            // Hacer la petición directamente para obtener el PDF
+            const token = await require('@react-native-async-storage/async-storage').default.getItem('kompapay_auth_token');
+            const response = await fetch(`${API_URL}${endpoint}`, {
+                method: 'GET',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Accept': 'application/pdf',
+                },
+            });
+
+            if (!response.ok) {
+                console.error('Error al descargar PDF:', response.status, response.statusText);
+                return false;
+            }
+
+            const blob = await response.blob();
+
             if (Platform.OS === 'web') {
                 // Lógica para descargar el archivo en el navegador
                 const url = window.URL.createObjectURL(blob);
@@ -58,19 +68,15 @@ export const useReportes = () => {
                 window.URL.revokeObjectURL(url);
                 return true;
             } else {
-                // Lógica para descargar y compartir en móvil (iOS/Android)
-                // const uri = FileSystem.documentDirectory + 'reporte.pdf';
-                // const base64 = await blobToBase64(blob); // Necesitarías una función auxiliar
-                // await FileSystem.writeAsStringAsync(uri, base64, { encoding: FileSystem.EncodingType.Base64 });
-                // await Sharing.shareAsync(uri);
-                console.warn('La descarga de PDF en móvil necesita implementación nativa.');
+                // Para React Native necesitaremos implementar la descarga nativa
+                console.warn('La descarga de PDF en móvil necesita implementación con expo-file-system y expo-sharing.');
                 return false;
             }
         } catch (downloadError) {
             console.error("Error al procesar el PDF:", downloadError);
             return false;
         }
-    }, [request]);
+    }, []);
 
     return {
         loading,

@@ -14,7 +14,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 
 // 1. Importar los hooks de datos que ya creamos
-import { useReportes, FiltrosReporte, ResumenReporte } from '@/hooks/useReportes';
+import { useReportes } from '@/hooks/useReportes';
+import { FiltrosReporte, ResumenReporte } from '@/config/config';
 import { useGroups } from '@/hooks/useGroups';
 
 // 2. Importar constantes y utilidades
@@ -23,7 +24,7 @@ import { formatCurrency } from '@/utils/formatters';
 
 // --- Sub-Componentes para un código más limpio ---
 
-const SummaryCard = ({ icon, title, value, trend }) => (
+const SummaryCard = ({ icon, title, value, trend }: { icon: any, title: string, value: any, trend?: string }) => (
     <View style={styles.summaryCard}>
         <View style={styles.summaryHeader}>
             <Text style={styles.summaryTitle}>{title}</Text>
@@ -34,7 +35,7 @@ const SummaryCard = ({ icon, title, value, trend }) => (
     </View>
 );
 
-const ChartPlaceholder = ({ title, description }) => (
+const ChartPlaceholder = ({ title, description }: { title: string, description: string }) => (
     <View style={[styles.card, Shadows.sm]}>
         <Text style={styles.cardTitle}>{title}</Text>
         <Text style={styles.cardDescription}>{description}</Text>
@@ -101,8 +102,8 @@ export default function ReportsScreen() {
                     <>
                         {/* Tarjetas de Resumen */}
                         <View style={styles.summaryGrid}>
-                            <SummaryCard icon="cash-outline" title="Gastos Totales" value={formatCurrency(resumen.resumen.total_gastos_periodo)} trend="+12.5% vs mes pasado" />
-                            <SummaryCard icon="people-outline" title="Grupos Activos" value={resumen.resumen.cantidad_grupos} trend="+2 este mes" />
+                            <SummaryCard icon="cash-outline" title="Gastos Totales" value={formatCurrency(resumen.resumen.total_pagado)} trend="+12.5% vs mes pasado" />
+                            <SummaryCard icon="people-outline" title="Grupos Activos" value={resumen.grupos.length} trend="+2 este mes" />
                         </View>
                         
                         {/* Gráficos */}

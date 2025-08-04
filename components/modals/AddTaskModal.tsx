@@ -32,14 +32,14 @@ export const AddTaskModal = ({ visible, onClose, groupId, tableroId }: AddTaskMo
 
     const [title, setTitle] = useState('');
     const [assigneeId, setAssigneeId] = useState<string | null>(null);
-    const [priority, setPriority] = useState<'low' | 'medium' | 'high'>('medium');
+    const [priority, setPriority] = useState<'baja' | 'media' | 'alta' | 'critica'>('media');
 
     // Resetea el formulario cuando se cierra el modal
     useEffect(() => {
         if (!visible) {
             setTitle('');
             setAssigneeId(null);
-            setPriority('medium');
+            setPriority('media');
         }
     }, [visible]);
 
@@ -51,7 +51,7 @@ export const AddTaskModal = ({ visible, onClose, groupId, tableroId }: AddTaskMo
 
         const newTask = await createTarea({
             titulo: title.trim(),
-            asignado_a: assigneeId,
+            asignado_a: assigneeId || undefined,
             prioridad: priority,
         });
 
@@ -63,10 +63,11 @@ export const AddTaskModal = ({ visible, onClose, groupId, tableroId }: AddTaskMo
         }
     };
 
-    const priorities: { value: 'low' | 'medium' | 'high'; label: string }[] = [
-        { value: "low", label: "Baja" },
-        { value: "medium", label: "Media" },
-        { value: "high", label: "Alta" },
+    const priorities: { value: 'baja' | 'media' | 'alta' | 'critica'; label: string }[] = [
+        { value: "baja", label: "Baja" },
+        { value: "media", label: "Media" },
+        { value: "alta", label: "Alta" },
+        { value: "critica", label: "Crítica" },
     ];
 
     return (
@@ -191,7 +192,7 @@ const styles = StyleSheet.create({
         backgroundColor: KompaColors.primary,
     },
     chipText: {
-        color: KompaColors.text,
+        color: KompaColors.textPrimary,
     },
     chipTextSelected: {
         color: 'white',

@@ -21,13 +21,13 @@ export const useTareas = (groupId: string, tableroId: string) => {
 
     const fetchTareas = useCallback(async () => {
         if (!tableroId) return;
-        // Asumiendo que el endpoint es /tableros/{id}/tareas
-        const endpoint = `${ENDPOINTS.TABLEROS.SHOW.replace('{grupoId}', groupId).replace('{tableroId}', tableroId)}/tareas`;
+        // Usar el endpoint correcto para tareas
+        const endpoint = ENDPOINTS.TAREAS.LIST.replace('{tableroId}', tableroId);
         const data = await request<Tarea[]>(endpoint);
         if (data) {
             setTareas(data.sort((a, b) => a.orden - b.orden));
         }
-    }, [request, groupId, tableroId]);
+    }, [request, tableroId]);
 
     useEffect(() => {
         fetchTareas();
@@ -68,16 +68,16 @@ export const useTareas = (groupId: string, tableroId: string) => {
 
     const createTarea = useCallback(async (tareaData: CreateTareaRequest) => {
         if (!tableroId) return null;
-        const endpoint = `${ENDPOINTS.TABLEROS.SHOW.replace('{grupoId}', groupId).replace('{tableroId}', tableroId)}/tareas`;
+        const endpoint = ENDPOINTS.TAREAS.CREATE.replace('{tableroId}', tableroId);
         // La UI se actualizará vía WebSocket
         return await request<Tarea>(endpoint, {
             method: 'POST',
             body: JSON.stringify(tareaData),
         });
-    }, [request, groupId, tableroId]);
+    }, [request, tableroId]);
 
     const reorderTareas = useCallback(async (orderedIds: string[]) => {
-        const endpoint = `${ENDPOINTS.TABLEROS.SHOW.replace('{grupoId}', groupId).replace('{tableroId}', tableroId)}/tareas/reorder`;
+        const endpoint = ENDPOINTS.TAREAS.REORDER;
         
         // Actualización optimista
         setTareas(prev => {
@@ -89,9 +89,50 @@ export const useTareas = (groupId: string, tableroId: string) => {
             method: 'POST',
             body: JSON.stringify({ ids: orderedIds } as ReorderRequest),
         });
-    }, [request, groupId, tableroId]);
+    }, [request]);
 
-    return { tareas, loading, error, fetchTareas, createTarea, reorderTareas };
+    const updateTarea = useCallback(async (tareaId: string, updates: UpdateTareaRequest) => {
+        const endpoint = ENDPOINTS.TAREAS.UPDATE.replace('{tareaId}', tareaId);
+        const updatedTarea = await request<Tarea>(endpoint, {
+            method: 'PUT',
+            body: JSON.stringify(updates),
+        });
+        
+        if (updatedTarea) {
+            // Actualización optimista en la lista
+            setTareas(prev => prev.map(t => t.id === tareaId ? updatedTarea : t));
+        }
+        return updatedTarea;
+    }, [request]);
+
+    const deleteTarea = useCallback(async (tareaId: string) => {
+        const endpoint = ENDPOINTS.TAREAS.DELETE.replace('{tareaId}', tareaId);
+        const result = await request(endpoint, { method: 'DELETE' });
+        
+        if (result) {
+            // Actualización optimista en la lista
+            setTareas(prev => prev.filter(t => t.id !== tareaId));
+        }
+        return !!result;
+    }, [request]);
+
+    const moveTarea = useCallback(async (tareaId: string, moveData: MoveTareaRequest) => {
+        const endpoint = ENDPOINTS.TAREAS.MOVE.replace('{tareaId}', tareaId);
+        const movedTarea = await request<Tarea>(endpoint, {
+            method: 'POST',
+            body: JSON.stringify(moveData),
+        });
+        
+        if (movedTarea) {
+            // Si se mueve a otro tablero, la removemos de la lista actual
+            if (moveData.tablero_id !== tableroId) {
+                setTareas(prev => prev.filter(t => t.id !== tareaId));
+            }
+        }
+        return movedTarea;
+    }, [request, tableroId]);
+
+    return { tareas, loading, error, fetchTareas, createTarea, reorderTareas, updateTarea, deleteTarea, moveTarea };
 };
 
 // -----------------------------------------------------------------------------

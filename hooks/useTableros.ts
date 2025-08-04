@@ -86,7 +86,37 @@ export const useTableros = (groupId: string) => {
         });
     }, [request, groupId, tableros]);
 
-    return { tableros, loading, error, fetchTableros, createTablero, reorderTableros };
+    const updateTablero = useCallback(async (tableroId: string, updates: UpdateTableroRequest) => {
+        const endpoint = ENDPOINTS.TABLEROS.UPDATE
+            .replace('{grupoId}', groupId)
+            .replace('{tableroId}', tableroId);
+
+        const updatedTablero = await request<Tablero>(endpoint, {
+            method: 'PUT',
+            body: JSON.stringify(updates),
+        });
+
+        if (updatedTablero) {
+            // Actualización optimista en la lista
+            setTableros(prev => prev.map(t => t.id === tableroId ? updatedTablero : t));
+        }
+        return updatedTablero;
+    }, [request, groupId]);
+
+    const deleteTablero = useCallback(async (tableroId: string) => {
+        const endpoint = ENDPOINTS.TABLEROS.DELETE
+            .replace('{grupoId}', groupId)
+            .replace('{tableroId}', tableroId);
+        
+        const result = await request(endpoint, { method: 'DELETE' });
+        if (result) {
+            // Actualización optimista en la lista
+            setTableros(prev => prev.filter(t => t.id !== tableroId));
+        }
+        return !!result;
+    }, [request, groupId]);
+
+    return { tableros, loading, error, fetchTableros, createTablero, reorderTableros, updateTablero, deleteTablero };
 };
 
 

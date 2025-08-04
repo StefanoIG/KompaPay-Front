@@ -118,6 +118,15 @@ export const ENDPOINTS = {
     DELETE: '/grupos/{grupoId}/tableros/{tableroId}',
     REORDER: '/grupos/{grupoId}/tableros/reorder',
   },
+  TAREAS: { // Endpoints para tareas (corregidos según las rutas del backend)
+    LIST: '/tableros/{tableroId}/tareas',
+    CREATE: '/tableros/{tableroId}/tareas',
+    SHOW: '/tareas/{tareaId}',
+    UPDATE: '/tareas/{tareaId}',
+    DELETE: '/tareas/{tareaId}',
+    MOVE: '/tareas/{tareaId}/move',
+    REORDER: '/tareas/reorder',
+  },
   NOTAS: { // Endpoints para notas colaborativas
     LIST: '/grupos/{grupoId}/notas',
     CREATE: '/grupos/{grupoId}/notas',
@@ -197,7 +206,7 @@ export interface Tarea {
   titulo: string;
   descripcion?: string;
   estado: 'pendiente' | 'en_progreso' | 'completada';
-  prioridad: 'baja' | 'media' | 'alta';
+  prioridad: 'baja' | 'media' | 'alta' | 'critica';
   fecha_vencimiento?: string;
   asignado_a?: string;
   etiquetas?: string[];
@@ -215,6 +224,9 @@ export interface Nota {
   version: number;
   bloqueada_por?: string;
   ultimo_editor: string;
+  es_privada?: boolean;
+  color?: string;
+  etiquetas?: string[];
   created_at: string;
   updated_at: string;
   editor?: User;
@@ -246,10 +258,11 @@ export interface CreateTareaRequest {
   titulo: string;
   descripcion?: string;
   estado?: 'pendiente' | 'en_progreso' | 'completada';
-  prioridad?: 'baja' | 'media' | 'alta';
+  prioridad?: 'baja' | 'media' | 'alta' | 'critica';
   fecha_vencimiento?: string;
   asignado_a?: string;
   etiquetas?: string[];
+  orden?: number;
 }
 
 export interface UpdateTareaRequest extends Partial<CreateTareaRequest> {
@@ -264,11 +277,17 @@ export interface MoveTareaRequest {
 export interface CreateNotaRequest {
   titulo: string;
   contenido: string;
+  es_privada?: boolean;
+  color?: string;
+  etiquetas?: string[];
 }
 
 export interface UpdateNotaRequest {
   titulo?: string;
   contenido?: string;
+  es_privada?: boolean;
+  color?: string;
+  etiquetas?: string[];
 }
 
 export interface ReorderRequest {
